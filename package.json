@@ -19,11 +19,12 @@
     "test": "node --test tests/",
     "test:smoke": "node tests/smoke.dom.mjs && node tests/sandbox.dom.mjs",
     "check": "node tools/check.mjs",
-    "verify": "node tools/check.mjs && node --test tests/ && node tests/smoke.dom.mjs && node tests/sandbox.dom.mjs",
-    "ci": "node tools/check.mjs && node --test tests/ && node tests/smoke.dom.mjs && node tests/sandbox.dom.mjs",
+    "verify": "node tools/check.mjs && node --test tests/ && node tests/smoke.dom.mjs && node tests/sandbox.dom.mjs && node tools/verify-bundle.mjs",
+    "ci": "node tools/check.mjs && node --test tests/ && node tests/smoke.dom.mjs && node tests/sandbox.dom.mjs && node tools/verify-bundle.mjs",
     "publish:github": "bash tools/publish-github.sh",
     "deploy": "bash tools/deploy-vercel.sh",
-    "deploy:prod": "bash tools/deploy-vercel.sh --prod"
+    "deploy:prod": "bash tools/deploy-vercel.sh --prod",
+    "verify:bundle": "node tools/verify-bundle.mjs"
   },
   "engines": {
     "node": ">=20"

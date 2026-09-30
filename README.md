@@ -192,13 +192,15 @@ satu-perintah. Panduan lengkap (berbahasa Indonesia) ada di **[DEPLOY.md](DEPLOY
 |---|---|
 | `vercel.json` | Deploy statis tanpa build: framework dimatikan, `outputDirectory: "."`, cache SW/manifest, header keamanan. |
 | `.vercelignore` | Hanya berkas aplikasi yang diunggah (`docs/`, `tests/`, `tools/`, `server/`, `preview/` dikecualikan). |
-| `.github/workflows/ci.yml` | Menjalankan `check + unit + smoke + sandbox` di Node 20 & 22 untuk setiap push dan Pull Request. |
+| `.github/workflows/ci.yml` | Menjalankan `check + unit + smoke + sandbox + verifikasi paket` di Node 20 & 22 untuk setiap push dan Pull Request. |
 | `.github/workflows/deploy-vercel.yml` | Deploy manual dari tab Actions (opsional, agar tidak bentrok dengan integrasi Git Vercel). |
 | `tools/publish-github.sh` | `GH_TOKEN=… bash tools/publish-github.sh --create ad-finance` → repo dibuat, commit, push. |
 | `tools/deploy-vercel.sh` | `VERCEL_TOKEN=… bash tools/deploy-vercel.sh --prod` → verifikasi dulu, lalu deploy. |
+| `tools/verify-bundle.mjs` | Meniru isi unggahan Vercel lalu membuktikan precache SW lengkap dan aplikasi tetap boot. |
 
 ```bash
-npm run verify                                   # check + 39 unit + 140 smoke + 12 sandbox
+npm run verify                                   # check + 39 unit + 140 smoke + 12 sandbox + paket deploy
+npm run verify:bundle                            # khusus memeriksa isi unggahan Vercel
 npm run publish:github -- --create ad-finance    # ke GitHub (butuh GH_TOKEN)
 npm run deploy:prod                              # ke Vercel (butuh VERCEL_TOKEN)
 ```

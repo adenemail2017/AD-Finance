@@ -27,6 +27,7 @@ sederhana: unggah berkasnya, selesai. Dokumen ini memandu dua langkah itu
 | `.github/workflows/deploy-vercel.yml` | Opsional: deploy langsung dari tab Actions (manual, agar tidak bentrok dengan integrasi Git Vercel). |
 | `tools/publish-github.sh` | Satu perintah untuk membuat repo git, membuat repositori GitHub, commit, dan push. |
 | `tools/deploy-vercel.sh` | Satu perintah untuk verifikasi lalu deploy ke Vercel (preview atau produksi). |
+| `tools/verify-bundle.mjs` | Menyalin tepat berkas yang akan diunggah, lalu membuktikan precache SW lengkap, semua aset ada, dan aplikasi tetap boot dari paket itu (`npm run verify:bundle`). |
 | `.gitignore` / `.env.example` | `node_modules`, `.env`, `.vercel`, dan berkas lokal lain tidak pernah ikut ter-commit. |
 
 ---
@@ -140,6 +141,7 @@ Buka URL produksi di HP, lalu:
 - [ ] **Responsif**: tidak ada scroll horizontal di HP; tabel laporan berubah jadi kartu bertumpuk.
 - [ ] **Ekspor**: CSV/XLSX terunduh; Cetak/PDF menghasilkan header **PERSONAL FINANCIAL STATEMENT**.
 - [ ] **Keamanan**: kunci PIN aktif; nomor rekening tetap ter-mask (`•••• 1234`).
+- [ ] **Paket deploy** sudah lolos `npm run verify:bundle` di komputer Anda.
 - [ ] **Lighthouse** (Chrome DevTools → Lighthouse → kategori PWA/Performance) untuk catatan akhir.
 
 ---
@@ -209,7 +211,8 @@ dikecualikan oleh `.vercelignore`).
 
 ```bash
 npm run dev            # jalankan lokal di http://localhost:4173
-npm run verify         # check + 39 unit + 140 smoke + 12 sandbox
+npm run verify         # check + 39 unit + 140 smoke + 12 sandbox + verifikasi paket deploy
+npm run verify:bundle  # hanya memeriksa isi unggahan Vercel (cepat)
 npm test               # hanya unit + API
 GH_TOKEN=… bash tools/publish-github.sh --create ad-finance
 VERCEL_TOKEN=… bash tools/deploy-vercel.sh --prod
