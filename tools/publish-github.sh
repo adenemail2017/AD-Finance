@@ -57,6 +57,14 @@ run() {
 
 command -v git >/dev/null || die "git belum terpasang."
 
+if [ -d .github/workflows ] && [ -n "${GH_TOKEN:-}" ]; then
+  warn 'repo ini berisi .github/workflows/* — token Anda WAJIB punya scope "workflow".'
+  warn 'Kalau tidak, GitHub menolak push dengan pesan "refusing to allow a Personal'
+  warn 'Access Token to create or update workflow".'
+  warn 'Token classic: centang "repo" + "workflow".'
+fi
+
+
 # --- 1. buatkan repositori GitHub bila diminta ----------------------------
 if [ -n "$CREATE_NAME" ]; then
   say "1/5  Membuat repositori GitHub “$CREATE_NAME”"
@@ -68,7 +76,7 @@ if [ -n "$CREATE_NAME" ]; then
       https://api.github.com/user | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).login))')"
     [ -n "$LOGIN" ] || die "Tidak bisa membaca akun GitHub dari token tersebut."
     PAYLOAD="$(node -e 'const [n,v,d]=process.argv.slice(1);console.log(JSON.stringify({name:n,description:d,private:v==="private",has_issues:true,has_wiki:false,auto_init:false}))' "$CREATE_NAME" "$VISIBILITY" "$DESCRIPTION")"
-    RESPONSE="$(curl -sS -u "x-access-token:$GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+    RESPONSE="$(curl -sS -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
       -X POST https://api.github.com/user/repos -d "$PAYLOAD")"
     if printf '%s' "$RESPONSE" | grep -q '"full_name"'; then
       ok "repositori dibuat: $(printf '%s' "$RESPONSE" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).full_name))')"

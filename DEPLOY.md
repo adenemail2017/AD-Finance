@@ -36,21 +36,33 @@ sederhana: unggah berkasnya, selesai. Dokumen ini memandu dua langkah itu
 
 ### A1. Cara tercepat (skrip bawaan)
 
-Butuh **Personal Access Token**: buka <https://github.com/settings/tokens> →
-*Generate new token (classic)* → centang **`repo`** (dan `workflow` bila ingin CI
-langsung aktif) → Generate. Token hanya dipakai sekali ini.
+Butuh **Personal Access Token**. Pilih salah satu:
+
+**Classic** — <https://github.com/settings/tokens> → *Generate new token (classic)* →
+centang **`repo`** **dan** **`workflow`** → Generate.
+> `workflow` **wajib** di sini: repo ini mengirim berkas `.github/workflows/*` saat
+> push pertama. Tanpa scope itu GitHub menolak dengan pesan
+> *"refusing to allow a Personal Access Token to create or update workflow"*.
+
+**Fine-grained** — <https://github.com/settings/personal-access-tokens/new>:
+*Repository access* → **All repositories** (atau pilih repo setelah dibuat), lalu
+*Permissions* → **Contents: Read and write**, **Workflows: Read and write**,
+**Administration: Read and write** (untuk membuat repo lewat API), **Metadata: Read**.
+
+Token hanya dipakai saat itu; skrip tidak menyimpannya. Cabut tokennya
+(<https://github.com/settings/tokens>) begitu push selesai.
 
 ```bash
 cd personal-finance-os
 
-# buat repo (private) + commit + push dalam satu perintah
-GH_TOKEN=ghp_xxxxxxxx bash tools/publish-github.sh --create ad-finance
+# buat repo + commit + push dalam satu perintah (privat)
+GH_TOKEN=ghp_xxxxxxxx bash tools/publish-github.sh --create AD-Finance
 
-# publik, atau dengan pesan commit sendiri
-GH_TOKEN=ghp_xxxxxxxx bash tools/publish-github.sh --create ad-finance --public -m "feat: AD-Finance v2"
+# publik (pilihan proyek ini), atau dengan pesan commit sendiri
+GH_TOKEN=ghp_xxxxxxxx bash tools/publish-github.sh --create AD-Finance --public -m "feat: AD-Finance v2"
 
 # kalau repo-nya sudah dibuat manual di github.com
-GH_TOKEN=ghp_xxxxxxxx bash tools/publish-github.sh https://github.com/USERNAME/ad-finance.git
+GH_TOKEN=ghp_xxxxxxxx bash tools/publish-github.sh https://github.com/USERNAME/AD-Finance.git
 ```
 
 Token di atas hanya dipakai untuk autentikasi saat itu — skrip **tidak**
@@ -69,7 +81,10 @@ git push -u origin main
 ```
 
 Buat repositori kosongnya lebih dulu di <https://github.com/new>:
-nama **`ad-finance`**, **jangan** centang "Add a README" (nanti bentrok saat push).
+nama **`AD-Finance`**, **jangan** centang "Add a README" (nanti bentrok saat push).
+Catatan: nama repo bersifat case-insensitive — `AD-Finance` tetap bisa diakses lewat
+`github.com/USER/AD-Finance` maupun `github.com/USER/ad-finance`. Nama proyek Vercel
+nanti otomatis huruf kecil (`ad-finance`).
 
 ### A3. Kalau `.git/config` hilang / rusak
 
