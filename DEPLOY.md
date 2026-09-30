@@ -9,7 +9,7 @@
 | Produksi | <https://ad-finance-phi.vercel.app> — publik, sudah lolos audit. |
 | Alias lain | `ad-finance-this-is-ad.vercel.app`, `ad-finance-git-main-*.vercel.app`, dan URL per-deployment **meminta login Vercel** karena proyek ini mengaktifkan *Deployment Protection* (`ssoProtection: all_except_custom_domains`). Jadi selalu bagikan **ad-finance-phi.vercel.app** — atau matikan proteksinya di *Settings ▸ Deployment Protection ▸ Vercel Authentication ▸ Only Preview Deployments*. |
 | Audit produksi | `npm run audit:live -- https://ad-finance-phi.vercel.app` → semua lolos: header, 41 entri precache, berkas internal 404, boot aplikasi dari berkas produksi. |
-| CI GitHub Actions | **Menunggu izin `Workflows: Read and write`** pada fine-grained token, atau tambahkan berkasnya manual (lihat `salin-ci-ke-github.md`). |
+| CI GitHub Actions | **Aktif & hijau** — 2 workflow (CI + deploy manual), 191 pemeriksaan di Node 20 (25 s) dan Node 22 (28 s). Badge di README. |
 
 AD-Finance adalah **PWA statis tanpa build step** — tidak ada bundler, tidak ada
 dependency runtime, tidak ada server yang wajib. Karena itu deploy-nya paling
@@ -187,7 +187,7 @@ git add -A && git commit -m "feat: …" && git push
 # → Vercel otomatis mendeploy; riwayat deploy ada di dashboard
 ```
 
-CI di GitHub akan menolak (merah) bila pemeriksaan gagal, jadi branch yang sudah
+CI di GitHub menolak (merah) bila pemeriksaan gagal — dan sudah membuktikan gunanya: job Node 22 menangkap `node --test <direktori>` yang tidak lagi didukung Node 22, lihat `tools/run-tests.mjs`., jadi branch yang sudah
 terhubung ke Vercel selalu dalam keadaan hijau. Ingin badge status di README?
 
 ```markdown
