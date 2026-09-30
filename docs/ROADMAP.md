@@ -123,6 +123,25 @@ Pelajaran: seluruh test DOM (jsdom) buta terhadap tata letak — jsdom tidak pun
 
 **Catatan operasional:** modul baru `src/utils/privacy.js` masuk daftar precache `sw.js` (pemeriksa statis menolak bila lupa) dan versi cache dinaikkan ke `adfinance-v2.1.0` agar PWA lama mengambil berkas baru.
 
+## Iterasi 6 — Catat Cepat, popup Hutang/Piutang & Akun, identitas aplikasi
+
+**Permintaan:** (1) tombol tambah di navbar berubah menjadi **X** dan bisa menutup menu **CATAT CEPAT**;
+(2) UI Catat Cepat terlalu banyak makan ruang; (3) popup kartu **Hutang** dan popup kartu **Account** berantakan;
+(4) perbarui versi di **Settings → Tentang Aplikasi** dan tambahkan "Developer Ade Nurrahman".
+
+| Area | Sebelum | Sesudah |
+|---|---|---|
+| Tombol tambah (navbar) | ikon plus diam saja; klik kedua tidak menutup menu | toggle: plus → **X**, `aria-expanded`, klik kedua / tombol tutup / ESC / scrim menutup menu |
+| Menu Catat Cepat | daftar 7 baris + separator, 232×**532 px**, menutupi hampir seluruh layar | grid 4 kolom ubin ikon + label, 366×**277 px**, judul ringkas, aksi "Form lengkap" satu baris |
+| Popup Hutang / Piutang | tiga `.grid-3` menumpuk jadi 1 kolom (≈300 px hanya untuk angka) lalu diskrol | satu **hero** ringkas: sisa + progress + total/dibayar/jatuh tempo dalam satu kartu, `.kv-tight` dua kolom |
+| Popup Akun | kartu 30-hari panjang membuat "Transaksi terakhir" tenggelam; nominal panjang memutus baris | tiga kartu sebaris dengan angka ringkas (`Rp 9.5 jt`), grafik 170 → 134 px, ledger `max-height` 320 → 240 px |
+| Footer sheet | 3–4 tombol dalam flex-wrap: tombol terakhir terpotong & menggantung | grid 2 kolom; aksi utama (Bayar Hutang / Terima / Simpan / Transaksi) selebar baris; tombol "Pengingat" pindah ke dalam body |
+| Notifikasi melayang | banner demo (z 300) menutupi isi sheet & menu (z 200) | `body.has-overlay` / `body.fab-open` menyembunyikan toast stack |
+| Tentang Aplikasi | menampilkan `state.version` = **v1** (itu versi skema penyimpanan, bukan versi rilis) | **v2.2.0** dari satu sumber `APP_VERSION` (sw-client.js) + baris **Developer: Ade Nurrahman** |
+
+**Bukti:** `preview/perbaikan-iterasi6.png` (sebelum/sesudah 5 permukaan), `preview/shots/{n1..n6,o1,o2}-*.png`.
+**Verifikasi:** invariant `tools/check.mjs` bertambah 6 (total **19**), smoke DOM bertambah 19 (total **175**), `audit:layout` 25/25 bersih, footer sheet diukur di browser (semua tombol utuh, overflow 0 px).
+
 ## Prinsip untuk perubahan berikutnya
 
 1. Jangan rusak invarian akuntansi (`docs/ACCOUNTING.md`).

@@ -145,6 +145,16 @@
     left: var(--s-4); right: var(--s-4); width: auto;
     bottom: calc(var(--bottomnav-h) + 30px + env(safe-area-inset-bottom, 0px));
   }
+  /* Sheet / menu Catat Cepat terbuka: notifikasi melayang disembunyikan agar tidak menutupi. */
+  body.has-overlay .toast-stack,
+  body.fab-open .toast-stack { opacity: 0; pointer-events: none; transition: opacity var(--t-fast) var(--ease); }
+  /* Menu Catat Cepat menempel di atas bottom nav, selebar layar minus margin. */
+  .fab-menu {
+    left: 12px; right: 12px; width: auto;
+    bottom: calc(var(--bottomnav-h) + 24px + env(safe-area-inset-bottom, 0px));
+    padding: 12px 12px 10px;
+  }
+  .fab-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 @media (max-width: 760px) {
@@ -312,11 +322,24 @@
   .sheet .field-label { font-size: var(--fs-xs); }
   .sheet-body { padding: var(--s-4) var(--s-4) var(--s-5); }
   .sheet-header { padding: var(--s-3) var(--s-4); }
-  .sheet-footer { flex-wrap: wrap; gap: var(--s-2); padding: var(--s-3) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom, 0px)); }
-  /* Aksi utama dapat baris penuh di atas, aksi sekunder berbagi sisa lebar. */
-  .sheet-footer .btn-primary { order: -1; flex: 1 1 100%; height: 46px; }
-  .sheet-footer .btn:not(.btn-primary) { flex: 1 1 0; justify-content: center; }
-  .sheet-footer .btn-danger-soft, .sheet-footer .btn-outline { min-width: 0; }
+  /* Footer sheet jadi grid 2 kolom yang rapi (tidak ada tombol terpotong). */
+  .sheet-footer {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-2); padding: var(--s-3) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom, 0px));
+  }
+  .sheet-footer .btn { width: 100%; min-width: 0; height: 44px; justify-content: center; white-space: nowrap; }
+  .sheet-footer .btn .icon { flex: none; }
+  /* Dialog 2 tombol (Batal | Ya) tetap berdampingan; aksi tunggal selebar baris. */
+  .sheet-footer > .btn:only-child { grid-column: 1 / -1; }
+  /* Footer 3+ tombol: aksi utama naik ke baris penuh, sisanya mengisi dua kolom,
+     dan tombol terakhir yang "menggantung" dilebarkan supaya tidak ada lubang. */
+  .sheet-footer:has(> .btn:nth-child(3)) > .btn-primary,
+  .sheet-footer:has(> .btn:nth-child(3)) > [data-pay],
+  .sheet-footer:has(> .btn:nth-child(3)) > [data-receive] { grid-column: 1 / -1; order: -1; height: 46px; }
+  .sheet-footer > .btn:last-child:nth-child(odd):not(.btn-primary):not(:only-child) { grid-column: 1 / -1; }
+  @supports not selector(:has(*)) {
+    .sheet-footer > .btn-primary, .sheet-footer > [data-pay], .sheet-footer > [data-receive] { grid-column: 1 / -1; order: -1; height: 46px; }
+  }
 
   /* ---------- 4. Detail Transaksi ---------- */
   .txn-detail-head { gap: var(--s-3); }
@@ -360,6 +383,61 @@
   .list-head .lh-figures .lh-fig:nth-child(3) { grid-column: span 2; }
   .chip-grid, .chip-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .kv.kv-tight { grid-template-columns: minmax(76px, 30%) minmax(0, 1fr); gap: 8px var(--s-2); }
+}
+
+
+/* ========================================================================== */
+/* Iterasi 6 — popup detail (Hutang · Piutang · Akun) lebih rapi & ringkas     */
+/* ========================================================================== */
+
+/* Kartu angka di dalam sheet tetap sebaris (bukan menumpuk jadi 3 baris). */
+.sheet .grid.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sheet .stat-box {
+  padding: 10px 11px; border-radius: var(--r-md); gap: 2px; min-width: 0;
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+.sheet .stat-box .stat-label {
+  font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sheet .stat-box .stat-value { font-size: var(--fs-sm); font-weight: 720; font-variant-numeric: tabular-nums; }
+.sheet .stat-row { gap: var(--s-2); }
+/* Jarak antarblok di dalam sheet dipadatkan supaya isi tidak tenggelam. */
+.sheet .stack-5 { gap: var(--s-4); }
+.sheet .stack-4 { gap: var(--s-3); }
+.sheet .kv { gap: 9px var(--s-4); }
+.sheet .card-foot { margin-top: var(--s-2); }
+
+@media (max-width: 760px) {
+  /* Header sheet: judul panjang tidak mendorong tombol tutup. */
+  .sheet-header { align-items: flex-start; }
+  .sheet-title { font-size: var(--fs-md); }
+  .sheet-header .t-xs { display: block; }
+
+  /* Riwayat pembayaran (timeline) lebih ringkas. */
+  .timeline-item { gap: var(--s-3); }
+  .timeline-content { padding-bottom: var(--s-3); }
+  .timeline { gap: 0; }
+
+  /* Buku besar di dalam sheet (transaksi terkait / transaksi terakhir). */
+  .sheet .ledger { border-radius: var(--r-md); }
+  .sheet .ledger .txn { padding: 9px var(--s-3); }
+  .sheet .chart-wrap { padding: 4px 0 0; }
+  .sheet .chart-axis-label { font-size: 9px; }
+  .sheet .chart-legend { gap: var(--s-2); }
+  /* Footer sheet: aksi utama penuh, aksi lain sebaris rapi. */
+  .sheet-footer .btn { min-width: 0; }
+  .sheet-footer .btn .icon { flex: none; }
+}
+
+@media (max-width: 420px) {
+  /* Tiga kartu angka tetap sebaris, hanya tipografinya yang menyusut. */
+  .sheet .stat-box { padding: 9px 9px; }
+  .sheet .stat-box .stat-value { font-size: var(--fs-xs); }
+  .sheet .stat-box .stat-label { font-size: 9px; letter-spacing: 0.03em; }
+  .fab-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+  .fab-tile { padding: 8px 2px 7px; }
+  .fab-tile-label { font-size: 9.5px; }
 }
 
 @media print {

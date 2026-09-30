@@ -612,19 +612,92 @@
 }
 .fab:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 24px 50px -18px rgba(29, 78, 216, 0.8); }
 .fab:active { transform: scale(0.97); }
+/* ---------------- Popup detail hutang / piutang (hero ringkas) ------------ */
+.debt-hero {
+  display: grid; gap: 10px;
+  padding: var(--s-4); border-radius: var(--r-lg);
+  background: linear-gradient(150deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--line);
+}
+.debt-hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-3); }
+.debt-hero-value {
+  font-size: clamp(24px, 6.4vw, 30px); font-weight: 760; letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums; line-height: 1.15; margin-top: 2px;
+}
+.debt-hero-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px; margin-top: 2px;
+  padding-top: 10px; border-top: 1px dashed var(--line-strong);
+}
+.dh-cell { display: grid; gap: 2px; min-width: 0; }
+.dh-cell + .dh-cell { padding-left: 8px; border-left: 1px solid var(--line); }
+.dh-label {
+  font-size: 9.5px; font-weight: 660; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dh-value {
+  font-size: var(--fs-xs); font-weight: 700; font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.dh-value i { font-style: normal; font-weight: 560; }
+.debt-hero.is-rec { background: linear-gradient(150deg, var(--brand-50), var(--surface)); border-color: color-mix(in srgb, var(--brand-300) 45%, var(--line)); }
+
+/* Grafik ringkas di dalam sheet */
+.chart-compact .chart-svg { max-height: 150px; }
+
+/* ---------------------- Catat Cepat (menu FAB) ---------------------------- */
+.fab-scrim {
+  position: fixed; inset: 0; z-index: calc(var(--z-fab) - 1);
+  background: rgba(15, 23, 42, 0.28); backdrop-filter: blur(2px);
+  animation: fadeIn var(--t-fast) var(--ease);
+}
 .fab-menu {
   position: fixed; z-index: var(--z-fab);
   right: var(--s-6); bottom: calc(var(--s-6) + 64px);
-  display: grid; gap: var(--s-2); width: 232px;
-  padding: var(--s-3); border-radius: var(--r-lg);
-  background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-xl);
-  animation: sheetIn var(--t-fast) var(--ease);
+  width: min(392px, calc(100vw - 32px));
+  padding: var(--s-3) var(--s-3) 10px;
+  border-radius: var(--r-xl);
+  background: var(--surface); border: 1px solid var(--line);
+  box-shadow: 0 26px 60px -28px rgba(15, 23, 42, 0.5);
+  opacity: 0; transform: translateY(10px) scale(0.98);
+  transition: opacity var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
-.fab-menu button {
-  display: flex; align-items: center; gap: var(--s-3); padding: 10px var(--s-3);
-  border-radius: var(--r-sm); font-size: var(--fs-sm); color: var(--text); text-align: left; cursor: pointer;
+.fab-menu.is-open { opacity: 1; transform: none; }
+.fab-menu-head { display: flex; align-items: center; gap: var(--s-2); padding: 2px 4px var(--s-3); }
+.fab-menu-title {
+  display: inline-flex; align-items: center; gap: 6px; flex: 1 1 auto;
+  font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3);
 }
-.fab-menu button:hover { background: var(--surface-3); }
+.fab-menu-title .icon { color: var(--brand-500); }
+.fab-menu-close {
+  display: grid; place-items: center; width: 28px; height: 28px; flex: none;
+  border-radius: 99px; border: 1px solid var(--line); background: var(--surface-2);
+  color: var(--text-2); cursor: pointer; transition: all var(--t-fast) var(--ease);
+}
+.fab-menu-close:hover { background: var(--neg-soft); border-color: transparent; color: var(--neg); }
+.fab-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.fab-tile {
+  display: grid; justify-items: center; gap: 6px; padding: 9px 4px 8px;
+  border-radius: var(--r-md); border: 1px solid transparent; background: var(--surface-2);
+  cursor: pointer; text-align: center; transition: transform var(--t-fast) var(--ease), background var(--t-fast), border-color var(--t-fast);
+}
+.fab-tile:hover { background: var(--surface-3); border-color: var(--line); transform: translateY(-2px); }
+.fab-tile:active { transform: scale(0.97); }
+.fab-tile-label {
+  font-size: 10.5px; font-weight: 640; line-height: 1.2; color: var(--text-2);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.fab-more {
+  display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 8px;
+  padding: 9px 12px; border-radius: var(--r-md); border: 1px dashed var(--line-strong);
+  background: transparent; color: var(--text-2); font-size: var(--fs-xs); font-weight: 620;
+  cursor: pointer; transition: all var(--t-fast) var(--ease);
+}
+.fab-more:hover { background: var(--brand-50); border-color: var(--brand-300); color: var(--brand-700); }
+
+/* Pemicu (bottom nav FAB & tombol sidebar/desktop) saat menu terbuka */
+.bn-item.is-center.is-open .bn-fab { background: var(--surface); color: var(--brand-600); box-shadow: 0 10px 26px -12px rgba(29, 78, 216, 0.6); }
+.bn-item.is-center.is-open .bn-fab svg { animation: popIn var(--t-fast) var(--ease); }
 
 /* ------------------------------ Bottom nav -------------------------------- */
 .bottomnav {

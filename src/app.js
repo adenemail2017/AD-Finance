@@ -207,8 +207,8 @@ function shellHtml() {
       </div>
     </nav>
 
-    <button class="fab desktop-only" data-quick-add aria-label="Transaksi baru">
-      ${icon('plus', { size: 20 })}<span>Transaksi</span>
+    <button class="fab desktop-only" data-quick-add aria-label="Transaksi baru" aria-expanded="false">
+      <span class="fab-ico">${icon('plus', { size: 20 })}</span><span class="fab-label">Transaksi</span>
     </button>
   `;
 }
@@ -388,31 +388,81 @@ function rerenderCurrent() {
 /* ------------------------------------------------------------------ */
 
 let fabMenuEl = null;
+let fabScrimEl = null;
+let fabTriggerEl = null;
 
-function closeFabMenu() {
-  if (fabMenuEl) { fabMenuEl.remove(); fabMenuEl = null; }
+const FAB_TRIGGER_ICON = 'plus';
+
+/** Ganti ikon pemicu (FAB bawah / tombol sidebar / FAB desktop) menjadi plus atau X. */
+function setFabTriggerState(trigger, isOpen) {
+  if (!trigger) return;
+  trigger.classList.toggle('is-open', isOpen);
+  trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  const iconHost = trigger.querySelector('.bn-fab, .fab-ico');
+  if (iconHost) iconHost.innerHTML = icon(isOpen ? 'x' : FAB_TRIGGER_ICON, { size: isOpen ? 22 : 25 });
+  const label = trigger.querySelector('.fab-label');
+  if (label) label.textContent = isOpen ? 'Tutup' : 'Transaksi';
+  trigger.setAttribute('aria-label', isOpen ? 'Tutup menu catat cepat' : 'Tambah transaksi');
 }
 
-function openFabMenu(anchor) {
+function closeFabMenu() {
+  if (fabMenuEl) {
+    fabMenuEl.classList.remove('is-open');
+    const el = fabMenuEl;
+    fabMenuEl = null;
+    setTimeout(() => el.remove(), 120);
+  }
+  fabScrimEl?.remove();
+  fabScrimEl = null;
+  setFabTriggerState(fabTriggerEl, false);
+  fabTriggerEl = null;
+  document.body.classList.remove('fab-open');
+}
+
+function openFabMenu(trigger) {
+  const alreadyOpen = Boolean(fabMenuEl) && fabTriggerEl === trigger;
   closeFabMenu();
+  if (alreadyOpen) return null;
+
+  fabTriggerEl = trigger;
+  setFabTriggerState(trigger, true);
+  document.body.classList.add('fab-open');
+
+  fabScrimEl = document.createElement('div');
+  fabScrimEl.className = 'fab-scrim';
+  document.body.appendChild(fabScrimEl);
+  fabScrimEl.addEventListener('click', closeFabMenu);
+
   fabMenuEl = document.createElement('div');
   fabMenuEl.className = 'fab-menu';
+  fabMenuEl.setAttribute('role', 'menu');
+  fabMenuEl.setAttribute('aria-label', 'Catat cepat');
   fabMenuEl.innerHTML = `
-    <div class="t-label" style="padding:4px 10px 2px">Catat cepat</div>
-    ${FAB_ACTIONS.map((a) => `<button data-fab-action="${a.key}" type="button">
-      ${iconTile(a.icon, { color: a.color, size: 30, radius: 9, iconSize: 16 })}<span class="grow" style="text-align:left">${esc(a.label)}</span>
-    </button>`).join('')}
-    <div class="dropdown-sep"></div>
-    <button data-fab-action="more" type="button">${iconTile('sliders', { color: 'var(--text-2)', size: 30, radius: 9, iconSize: 16 })}<span class="grow" style="text-align:left">Form lengkap…</span></button>
+    <div class="fab-menu-head">
+      <span class="fab-menu-title">${icon('zap', { size: 14 })} Catat Cepat</span>
+      <button class="fab-menu-close" type="button" data-fab-close aria-label="Tutup menu">${icon('x', { size: 16 })}</button>
+    </div>
+    <div class="fab-grid">
+      ${FAB_ACTIONS.map((a) => `<button class="fab-tile" data-fab-action="${a.key}" type="button" role="menuitem">
+        ${iconTile(a.icon, { color: a.color, size: 34, radius: 11, iconSize: 18 })}
+        <span class="fab-tile-label">${esc(a.label)}</span>
+      </button>`).join('')}
+    </div>
+    <button class="fab-more" data-fab-action="more" type="button" role="menuitem">
+      ${icon('sliders', { size: 15 })}<span class="grow">Form lengkap…</span>${icon('chevron-right', { size: 15 })}
+    </button>
   `;
   document.body.appendChild(fabMenuEl);
+  requestAnimationFrame(() => fabMenuEl?.classList.add('is-open'));
+
   on(fabMenuEl, 'click', '[data-fab-action]', (event, el) => {
     const key = el.dataset.fabAction;
     closeFabMenu();
     if (key === 'more') openTransactionForm({ onSaved: rerenderCurrent });
     else openTransactionForm({ presetType: key, onSaved: rerenderCurrent });
   });
-  void anchor;
+  on(fabMenuEl, 'click', '[data-fab-close]', closeFabMenu);
+  return fabMenuEl;
 }
 
 function bindShell() {
@@ -429,7 +479,8 @@ function bindShell() {
   on(root, 'click', '[data-notifications]', openNotificationsPanel);
   on(root, 'click', '[data-profile]', openProfileMenu);
   on(root, 'click', '[data-quick-add]', (event, el) => openFabMenu(el));
-  on(root, 'click', '[data-fab-center]', (event) => { event.preventDefault(); openFabMenu(qs('[data-fab-center]', root)); });
+  on(root, 'click', '[data-fab-center]', (event, el) => { event.preventDefault(); openFabMenu(el.closest('[data-fab-center]') || el); });
+  on(document, 'keydown', (event) => { if (event.key === 'Escape' && fabMenuEl) closeFabMenu(); });
   on(root, 'click', '[data-nav="more"]', (event) => { event.preventDefault(); openMoreSheet(); });
   on(root, 'click', 'a.nav-item', () => shell.classList.remove('is-drawer-open'));
   on(document, 'click', (event) => {

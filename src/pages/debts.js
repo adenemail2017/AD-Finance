@@ -197,26 +197,32 @@ export function openDebtDetail(debtId, { onChanged } = {}) {
     iconName: 'hand-coins',
     size: 'sm',
     body: `
-      <div class="stack-5">
-        <div class="grid grid-3">
-          <div class="stat-box"><div class="stat-label">Total hutang</div><div class="stat-value">${esc(money(info.principal))}</div></div>
-          <div class="stat-box"><div class="stat-label">Sudah dibayar</div><div class="stat-value t-pos">${esc(money(info.paid))}</div></div>
-          <div class="stat-box"><div class="stat-label">Sisa</div><div class="stat-value t-neg">${esc(money(info.remaining))}</div></div>
-        </div>
-
-        <div class="stack-2">
-          <div class="debt-progress-head">
-            <span>Progress pembayaran ${info.progress.toFixed(0)}%</span>
+      <div class="stack-4">
+        <div class="debt-hero">
+          <div class="debt-hero-top">
+            <div>
+              <span class="t-label">Sisa hutang</span>
+              <div class="debt-hero-value t-neg">${esc(money(info.remaining))}</div>
+            </div>
             ${badgeHtml(info.status === 'overdue' ? 'Jatuh tempo' : info.status === 'paid' ? 'Lunas' : info.status === 'partially_paid' ? 'Dibayar sebagian' : 'Aktif',
     info.status === 'overdue' ? 'neg' : info.status === 'paid' ? 'pos' : info.status === 'partially_paid' ? 'warn' : 'info')}
           </div>
           ${progressHtml(info.progress, { tone: info.remaining <= 0 ? 'pos' : info.isOverdue ? 'neg' : 'warn', size: 'progress-lg' })}
+          <div class="row-between t-2xs t-dim" style="margin-top:-4px">
+            <span>Terbayar ${esc(money(info.paid))} dari ${esc(money(info.principal))}</span>
+            <span class="t-bold">${info.progress.toFixed(0)}%</span>
+          </div>
+          <div class="debt-hero-grid">
+            <div class="dh-cell"><span class="dh-label">Total</span><span class="dh-value">${esc(money(info.principal))}</span></div>
+            <div class="dh-cell"><span class="dh-label">Dibayar</span><span class="dh-value t-pos">${esc(money(info.paid))}</span></div>
+            <div class="dh-cell"><span class="dh-label">Jatuh tempo</span><span class="dh-value">${debt.due_date ? `${esc(formatDate(debt.due_date, { year: false, short: true }))} <i class="t-dim">· ${esc(relativeDays(debt.due_date))}</i>` : '—'}</span></div>
+          </div>
         </div>
 
-        <dl class="kv">
+        <dl class="kv kv-tight">
           <dt>Mulai</dt><dd>${esc(formatDate(debt.start_date, { weekday: true }))}</dd>
-          <dt>Jatuh Tempo</dt><dd>${debt.due_date ? `${esc(formatDate(debt.due_date))} <span class="t-dim t-xs">(${esc(relativeDays(debt.due_date))})</span>` : '—'}</dd>
           <dt>Akun penerima</dt><dd>${esc(account?.name || '—')}</dd>
+          <dt>Pembayaran</dt><dd>${info.payments.length} kali${debt.reminder_days ? ` · pengingat ${debt.reminder_days} hari sebelum jatuh tempo` : ''}</dd>
           ${debt.notes ? `<dt>Catatan</dt><dd>${esc(debt.notes)}</dd>` : ''}
         </dl>
 
@@ -276,32 +282,40 @@ export function openReceivableDetail(recId, { onChanged } = {}) {
     iconName: 'file-text',
     size: 'sm',
     body: `
-      <div class="stack-5">
-        <div class="grid grid-3">
-          <div class="stat-box"><div class="stat-label">Total piutang</div><div class="stat-value">${esc(money(info.principal))}</div></div>
-          <div class="stat-box"><div class="stat-label">Sudah diterima</div><div class="stat-value t-pos">${esc(money(info.received))}</div></div>
-          <div class="stat-box"><div class="stat-label">Sisa</div><div class="stat-value">${esc(money(info.remaining))}</div></div>
-        </div>
-
-        <div class="stack-2">
-          <div class="debt-progress-head">
-            <span>Progress penerimaan ${info.progress.toFixed(0)}%</span>
+      <div class="stack-4">
+        <div class="debt-hero is-rec">
+          <div class="debt-hero-top">
+            <div>
+              <span class="t-label">Sisa piutang</span>
+              <div class="debt-hero-value t-brand">${esc(money(info.remaining))}</div>
+            </div>
             ${badgeHtml(info.status === 'overdue' ? 'Terlambat' : info.status === 'received' ? 'Selesai' : info.status === 'partially_received' ? 'Diterima sebagian' : 'Aktif',
     info.status === 'overdue' ? 'neg' : info.status === 'received' ? 'pos' : info.status === 'partially_received' ? 'warn' : 'info')}
           </div>
           ${progressHtml(info.progress, { tone: info.remaining <= 0 ? 'pos' : info.isOverdue ? 'neg' : '', size: 'progress-lg' })}
+          <div class="row-between t-2xs t-dim" style="margin-top:-4px">
+            <span>Diterima ${esc(money(info.received))} dari ${esc(money(info.principal))}</span>
+            <span class="t-bold">${info.progress.toFixed(0)}%</span>
+          </div>
+          <div class="debt-hero-grid">
+            <div class="dh-cell"><span class="dh-label">Total</span><span class="dh-value">${esc(money(info.principal))}</span></div>
+            <div class="dh-cell"><span class="dh-label">Diterima</span><span class="dh-value t-pos">${esc(money(info.received))}</span></div>
+            <div class="dh-cell"><span class="dh-label">Jatuh tempo</span><span class="dh-value">${rec.due_date ? `${esc(formatDate(rec.due_date, { year: false, short: true }))} <i class="t-dim">· ${esc(relativeDays(rec.due_date))}</i>` : '—'}</span></div>
+          </div>
         </div>
 
-        <dl class="kv">
+        <dl class="kv kv-tight">
           <dt>Diberikan</dt><dd>${esc(formatDate(rec.start_date, { weekday: true }))}</dd>
-          <dt>Jatuh Tempo</dt><dd>${rec.due_date ? `${esc(formatDate(rec.due_date))} <span class="t-dim t-xs">(${esc(relativeDays(rec.due_date))})</span>` : '—'}</dd>
-          <dt>Reminder</dt><dd>${rec.reminder_days} hari sebelum jatuh tempo</dd>
           <dt>Akun asal</dt><dd>${esc(account?.name || '—')}</dd>
+          <dt>Pengingat</dt><dd>${rec.reminder_days} hari sebelum jatuh tempo</dd>
           ${rec.notes ? `<dt>Catatan</dt><dd>${esc(rec.notes)}</dd>` : ''}
         </dl>
 
         <div>
-          <div class="field-label mb-2">Riwayat penerimaan (${info.payments.length})</div>
+          <div class="row-between mb-2">
+            <span class="field-label">Riwayat penerimaan (${info.payments.length})</span>
+            ${rec.reminder_days ? `<button class="btn btn-sm btn-soft" data-remind>${icon('message-square', { size: 14 })} Kirim pengingat</button>` : ''}
+          </div>
           ${info.payments.length ? `<div class="timeline">${info.payments.map((p) => `
             <div class="timeline-item">
               <div class="timeline-rail"><span class="timeline-dot" style="background:var(--info)"></span><span class="timeline-line"></span></div>
@@ -315,7 +329,7 @@ export function openReceivableDetail(recId, { onChanged } = {}) {
     footer: `
       <button class="btn btn-ghost" data-edit>${icon('edit', { size: 16 })} Edit</button>
       <button class="btn btn-danger-soft" data-delete>${icon('trash', { size: 16 })} Hapus</button>
-      <button class="btn btn-outline ml-auto" data-remind>${icon('message-square', { size: 16 })} Pengingat</button>
+
       ${info.remaining > 0 ? `<button class="btn btn-success" data-receive>${icon('circle-check', { size: 16 })} Terima</button>` : ''}`,
     onMount(sheet, api) {
       on(sheet, 'click', '[data-txn-id]', (event, el) => openTransactionDetail(el.dataset.txnId, { onChanged }));

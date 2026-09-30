@@ -113,6 +113,8 @@ export function openOverlay(cfg = {}) {
   const previouslyFocused = document.activeElement;
   document.body.appendChild(overlay);
   document.body.style.overflow = 'hidden';
+  // Saat sheet terbuka, notifikasi melayang disembunyikan agar tidak menutupi isi sheet.
+  document.body.classList.add('has-overlay');
 
   let released = false;
   const releaseFocus = trapFocus(sheet);
@@ -131,6 +133,7 @@ export function openOverlay(cfg = {}) {
       overlay.remove();
       if (!overlayStack.length) {
         document.body.style.overflow = '';
+        document.body.classList.remove('has-overlay');
         document.removeEventListener('keydown', onKeydown);
       }
       previouslyFocused?.focus?.();

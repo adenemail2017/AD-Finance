@@ -270,8 +270,31 @@ const targetAccountId = state.accounts[0].id;
 const balanceBefore = finance.accountBalance(state, targetAccountId);
 const countBefore = state.transactions.length;
 click($('[data-quick-add]'));
+const fabTrigger = $('[data-fab-center]');
+click(fabTrigger);
 await waitFor(() => $('.fab-menu'), { label: 'fab menu' });
 check('FAB menu offers quick actions', $$('.fab-menu [data-fab-action]').length >= 7);
+check('FAB berubah menjadi tombol X saat menu terbuka',
+  /is-open/.test(fabTrigger.className) && fabTrigger.getAttribute('aria-expanded') === 'true');
+const fabIconOpen = $('.bn-fab')?.innerHTML || '';
+check('ikon FAB berganti (bukan tanda plus)', !/M12 5\.2v13\.6M5\.2 12h13\.6/.test(fabIconOpen), fabIconOpen.slice(0, 42));
+check('menu Catat Cepat memakai grid ubin', $$('.fab-menu .fab-tile').length >= 7 && Boolean($('.fab-menu .fab-tile-label')));
+check('menu menyediakan tombol tutup eksplisit', Boolean($('.fab-menu [data-fab-close]')));
+check('menu membawa aksi "Form lengkap"', Boolean($('.fab-menu [data-fab-action="more"]')));
+check('scrim muncul & toast disembunyikan saat menu terbuka',
+  Boolean($('.fab-scrim')) && document.body.classList.contains('fab-open'));
+click(fabTrigger);
+await sleep(220);
+check('klik FAB kedua menutup menu', !$('.fab-menu') && !$('.fab-scrim'));
+check('ikon FAB kembali menjadi tanda plus',
+  /M12 5\.2v13\.6M5\.2 12h13\.6/.test($('.bn-fab')?.innerHTML || '') && fabTrigger.getAttribute('aria-expanded') === 'false');
+click(fabTrigger);
+await waitFor(() => $('.fab-menu'), { label: 'fab menu (kedua)' });
+click($('.fab-menu [data-fab-close]'));
+await sleep(220);
+check('tombol tutup di menu berfungsi', !$('.fab-menu'));
+click(fabTrigger);
+await waitFor(() => $('.fab-menu'), { label: 'fab menu (ketiga)' });
 click($$('.fab-menu [data-fab-action]').find((b) => b.dataset.fabAction === 'expense'));
 await waitFor(() => $('.sheet [data-amount]'), { label: 'transaction form' });
 check('transaction form opens as modal', Boolean($('.overlay .sheet')));
@@ -363,6 +386,32 @@ click($('.sheet [data-save]'));
 await waitFor(() => !doc.querySelector('.overlay'), { label: 'budget form closed' });
 check('budget saved', state.budgets.length === budgetsBefore + 1, `${budgetsBefore} → ${state.budgets.length}`);
 check('budget usage computed for the period', finance.budgetUsage(state, state.budgets[0].period).length > 0);
+
+section('Popup Hutang · Piutang · Akun (Iterasi 6)');
+await waitFor(() => $('#view .card'), { label: 'kembali ke halaman' });
+window.__pfos.navigate('debts');
+await waitFor(() => $('[data-debt-card]'), { label: 'halaman hutang' });
+click($('[data-debt-card]'));
+await waitFor(() => $('.overlay .sheet'), { label: 'popup hutang' });
+check('popup hutang memakai hero ringkas (.debt-hero)', Boolean($('.overlay .debt-hero')));
+check('popup hutang tidak lagi menumpuk kartu angka',
+  $$('.overlay .sheet .grid.grid-3 > .stat-box').length === 0 && /SISA HUTANG|Sisa hutang/i.test($('.overlay .debt-hero')?.textContent || ''));
+const heroText = ($('.overlay .debt-hero')?.textContent || '').replace(/\s+/g, ' ');
+check('hero hutang memuat total, terbayar, dan jatuh tempo',
+  /TOTAL/i.test(heroText) && /DIBAYAR/i.test(heroText) && /JATUH TEMPO/i.test(heroText), heroText.slice(0, 90));
+check('label & nilai popup tetap dua kolom (.kv-tight)', Boolean($('.overlay .kv.kv-tight')));
+click($('.overlay [data-close]'));
+await sleep(80);
+window.__pfos.navigate('accounts');
+await waitFor(() => $('[data-account-card]'), { label: 'halaman akun' });
+click($('[data-account-card]'));
+await waitFor(() => $('.overlay .sheet'), { label: 'popup akun' });
+check('popup akun menampilkan 3 kartu arus 30 hari', $$('.overlay .sheet .grid.grid-3 .stat-box').length === 3,
+  `${$$('.overlay .sheet .grid.grid-3 .stat-box').length}`);
+check('grafik popup akun memakai mode ringkas (.chart-compact)', Boolean($('.overlay .chart-compact')));
+check('popup akun memuat nomor akun ter-mask', /••••/.test($('.overlay [data-number]')?.textContent || ''));
+click($('.overlay [data-close]'));
+await sleep(80);
 
 section('Global search, notifications, theme, export');
 window.__pfos.navigate('dashboard');
@@ -526,6 +575,15 @@ check('manifest shortcuts defined', manifest.shortcuts.length === 3);
 section('Settings & security (PIN lifecycle, lock screen, data tools)');
 window.__pfos.navigate('settings');
 await waitFor(() => $('#view [data-save-pin]'), { label: 'settings page' });
+const { APP_VERSION } = await import(join(ROOT, 'src/sw-client.js'));
+const aboutText = (text().match(/Tentang Aplikasi.{0,220}/) || [''])[0];
+check('Tentang Aplikasi mencantumkan versi rilis yang benar',
+  aboutText.includes(`v${APP_VERSION}`) && !/v1\b/.test(aboutText), `APP_VERSION=${APP_VERSION}`);
+check('Tentang Aplikasi mencantumkan developer', /Ade Nurrahman/.test(aboutText), aboutText.slice(0, 80));
+check('versi aplikasi seragam (package.json, sw-client, sw.js cache)',
+  JSON.parse(await readFile(join(ROOT, 'package.json'), 'utf8')).version === APP_VERSION
+    && (await readFile(join(ROOT, 'sw.js'), 'utf8')).includes(`adfinance-v${APP_VERSION}`),
+  APP_VERSION);
 const security = await import(join(ROOT, 'src/services/security.js'));
 check('no PIN on a fresh profile', security.hasPin(store.state) === false);
 check('weak PINs are detected as weak', security.pinStrength('1234').score <= 0 && security.pinStrength('4917').score > 0);

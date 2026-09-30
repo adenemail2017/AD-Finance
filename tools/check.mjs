@@ -252,8 +252,9 @@ const invariants = [
   },
   {
     label: 'aksi utama sheet dapat baris penuh di mobile (tidak terpotong)',
-    pass: /\.sheet-footer \.btn-primary\s*\{[^}]*flex: 1 1 100%/s.test(cssApp),
-    hint: 'tombol "Simpan Transaksi" terpotong di tepi kanan pada 390px',
+    pass: /\.sheet-footer\s*\{[^}]*display: grid; grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/s.test(cssApp)
+      && /:has\(> \.btn:nth-child\(3\)\)/.test(cssApp.replace(/\\/g, '')),
+    hint: 'footer sheet harus grid 2 kolom dengan aksi utama selebar baris penuh (390px)',
   },
   {
     label: 'daftar label-nilai detail tetap dua kolom di layar sempit',
@@ -265,6 +266,45 @@ const invariants = [
     label: 'tabel rekap padat memakai tiga kolom per baris',
     pass: /\.table-stack\.is-dense tbody tr[^{]*\{[^}]*grid-template-columns:\s*repeat\(3/s.test(cssApp),
     hint: '9 kolom rekap menjadi 5 baris tinggi bila tetap dua kolom',
+  },
+  {
+    label: 'menu Catat Cepat memakai ubin grid, scrim, dan bisa ditutup',
+    pass: /\.fab-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4/s.test(cssComponents)
+      && /class="fab-tile"/.test(await readFile(join(ROOT, 'src/app.js'), 'utf8'))
+      && /fab-scrim/.test(await readFile(join(ROOT, 'src/app.js'), 'utf8'))
+      && /data-fab-close/.test(await readFile(join(ROOT, 'src/app.js'), 'utf8'))
+      && /\.fab-menu\.is-open/.test(cssComponents),
+    hint: 'menu lama 232×532 px; harus jadi grid ubin ringkas dengan scrim + tombol tutup',
+  },
+  {
+    label: 'FAB berubah menjadi tombol X saat menu terbuka (toggle)',
+    pass: /setFabTriggerState/.test(await readFile(join(ROOT, 'src/app.js'), 'utf8'))
+      && /const alreadyOpen = Boolean\(fabMenuEl\) && fabTriggerEl === trigger/.test(await readFile(join(ROOT, 'src/app.js'), 'utf8'))
+      && /\.bn-item\.is-center\.is-open \.bn-fab/.test(cssComponents),
+    hint: 'klik kedua pada FAB harus menutup menu dan ikon kembali menjadi tanda plus',
+  },
+  {
+    label: 'kartu angka di dalam sheet tetap sebaris (tidak menumpuk)',
+    pass: /\.sheet \.grid\.grid-3\s*\{[^}]*repeat\(3, minmax\(0, 1fr\)\)/s.test(cssApp),
+    hint: '.grid-3 menumpuk jadi 1 kolom di mobile → popup Hutang/Akun terlihat berantakan',
+  },
+  {
+    label: 'popup hutang/piutang memakai hero ringkas',
+    pass: /class="debt-hero/.test(await readFile(join(ROOT, 'src/pages/debts.js'), 'utf8'))
+      && /\.debt-hero\s*\{/.test(cssComponents),
+    hint: 'tiga kartu angka bertumpuk di popup hutang digantikan satu hero berisi total/dibayar/jatuh tempo',
+  },
+  {
+    label: 'notifikasi melayang tidak menutupi sheet / menu',
+    pass: /body\.has-overlay \.toast-stack/.test(cssApp) && /body\.fab-open \.toast-stack/.test(cssApp)
+      && /classList\.add\('has-overlay'\)/.test(await readFile(join(ROOT, 'src/components/ui.js'), 'utf8')),
+    hint: 'toast (z 300) menutupi isi sheet (z 200); sembunyikan saat sheet atau menu Catat Cepat terbuka',
+  },
+  {
+    label: 'Tentang Aplikasi memakai APP_VERSION, bukan versi skema penyimpanan',
+    pass: /APP_VERSION/.test(await readFile(join(ROOT, 'src/pages/settings.js'), 'utf8'))
+      && !/state\.version \? `v\$\{state\.version\}`/.test(await readFile(join(ROOT, 'src/pages/settings.js'), 'utf8')),
+    hint: 'state.version berisi versi skema data (=1); versi rilis harus dari sw-client.js',
   },
 ];
 for (const inv of invariants) {

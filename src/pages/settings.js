@@ -10,6 +10,7 @@ import { hasPin, setPin, removePin, lock, pinStrength } from '../services/securi
 import { esc, on, qs, qsa } from '../utils/dom.js';
 import { money } from '../utils/format.js';
 import { icon, iconTile } from '../components/icons.js';
+import { APP_VERSION } from '../sw-client.js';
 import {
   badgeHtml, confirmDialog, fieldHtml, openAdaptive, progressHtml, toast,
 } from '../components/ui.js';
@@ -233,10 +234,12 @@ export const settingsPage = {
 
             <section class="card col-6">
               <div class="card-head">
-                <div><h3>Tentang Aplikasi</h3><div class="card-sub">AD-Finance ${esc(state.version ? `v${state.version}` : '')}</div></div>
+                <div><h3>Tentang Aplikasi</h3><div class="card-sub">AD-Finance v${esc(APP_VERSION)} · Developer Ade Nurrahman</div></div>
                 ${iconTile('sparkles', { color: 'var(--accent)', size: 34, radius: 11, iconSize: 17 })}
               </div>
               <dl class="kv">
+                <dt>Versi</dt><dd>v${esc(APP_VERSION)} · build ${esc(APP_VERSION)} (PWA offline-first)</dd>
+                <dt>Developer</dt><dd><b>Ade Nurrahman</b></dd>
                 <dt>Arsitektur</dt><dd>PWA offline-first · vanilla ESM modular</dd>
                 <dt>Penyimpanan</dt><dd>${esc(persistence.mode)}${isFallbackMode() ? ' (fallback)' : ' · IndexedDB'}</dd>
                 <dt>Uang</dt><dd>Integer minor unit, tanpa error pembulatan float</dd>

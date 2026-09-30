@@ -171,25 +171,25 @@ export function openAccountDetail(accountId, { onChanged, navigate } = {}) {
         <div class="row-between">
           <div>
             <div class="t-label">Saldo saat ini</div>
-            <div class="t-display" style="font-size:32px" data-count="${row?.balance || 0}">${esc(money(row?.balance || 0))}</div>
-            <div class="t-xs t-dim mt-1">Saldo awal ${esc(money(account.opening_balance))} · ${history.length} transaksi</div>
+            <div class="t-display" style="font-size:30px" data-count="${row?.balance || 0}">${esc(money(row?.balance || 0))}</div>
+            <div class="t-2xs t-dim mt-1">Saldo awal ${esc(money(account.opening_balance, { compact: true }))} · ${history.length} transaksi</div>
           </div>
           <button class="icon-btn" data-reveal title="Tampilkan / sembunyikan nomor">${icon('eye', { size: 18 })}</button>
         </div>
 
         <div class="grid grid-3">
-          <div class="stat-box"><div class="stat-label">Masuk 30 hari</div><div class="stat-value t-pos">${esc(money(flow.inflow))}</div></div>
-          <div class="stat-box"><div class="stat-label">Keluar 30 hari</div><div class="stat-value t-neg">${esc(money(flow.outflow))}</div></div>
-          <div class="stat-box"><div class="stat-label">Net 30 hari</div><div class="stat-value">${esc(money(flow.net))}</div></div>
+          <div class="stat-box"><div class="stat-label">Masuk 30 hari</div><div class="stat-value t-pos">${esc(money(flow.inflow, { compact: true }))}</div></div>
+          <div class="stat-box"><div class="stat-label">Keluar 30 hari</div><div class="stat-value t-neg">${esc(money(flow.outflow, { compact: true }))}</div></div>
+          <div class="stat-box"><div class="stat-label">Net 30 hari</div><div class="stat-value">${esc(money(flow.net, { compact: true }))}</div></div>
         </div>
 
-        <div class="chart-wrap">${lineAreaChart({
+        <div class="chart-wrap chart-compact">${lineAreaChart({
     labels: dailySeries(state, range.from, range.to).map((d) => d.date.slice(8, 10)),
     series: [{ name: 'Net harian', color: account.color || 'var(--brand-500)', values: spark }],
-    height: 170, format: (v) => money(v, { compact: true }), showDots: false, zeroLine: true,
+    height: 134, format: (v) => money(v, { compact: true }), showDots: false, zeroLine: true,
   })}</div>
 
-        <dl class="kv">
+        <dl class="kv kv-tight">
           <dt>Jenis</dt><dd>${esc(typeLabel)}</dd>
           ${account.institution ? `<dt>Institusi</dt><dd>${esc(account.institution)}</dd>` : ''}
           <dt>Nomor</dt><dd data-number class="t-mono" data-masked="${esc(maskAccountNumber(account.account_number) || '—')}" data-real="${esc(account.account_number || '—')}">${esc(maskAccountNumber(account.account_number) || '—')}</dd>
@@ -202,7 +202,7 @@ export function openAccountDetail(accountId, { onChanged, navigate } = {}) {
             <span class="field-label">Transaksi terakhir</span>
             <button class="btn btn-sm btn-ghost" data-statement>Rekening koran ${icon('chevron-right', { size: 14 })}</button>
           </div>
-          <div class="ledger" style="border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;max-height:320px;overflow-y:auto">
+          <div class="ledger" style="border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;max-height:240px;overflow-y:auto">
             ${history.length ? ledgerHtml(history.slice(0, 25), { state }) : '<div class="t-xs t-dim" style="padding:var(--s-4)">Belum ada transaksi pada akun ini.</div>'}
           </div>
         </div>
