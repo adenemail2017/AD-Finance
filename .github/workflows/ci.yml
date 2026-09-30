@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Every push is verified exactly like on a developer machine:
+# integrity check -> unit tests -> DOM smoke test -> blocked-storage test.
+jobs:
+  verify:
+    name: verify (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install the dev-only test dependency
+        run: npm install --no-save jsdom
+
+      - name: Integrity check (icons, module graph, SW precache, manifest)
+        run: npm run check
+
+      - name: Unit + API tests
+        run: npm test
+
+      - name: DOM smoke test (boots the real app)
+        run: node tests/smoke.dom.mjs
+
+      - name: Blocked-storage sandbox test
+        run: node tests/sandbox.dom.mjs
+
+      - name: Deployment bundle check (what Vercel will upload)
+        run: node tools/verify-bundle.mjs
+
+      - name: Report result
+        if: success()
+        run: echo "AD-Finance verified — safe to deploy."

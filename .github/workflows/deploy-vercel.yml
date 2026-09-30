@@ -1,0 +1,42 @@
+name: Deploy to Vercel (manual)
+
+# Optional path: deploy straight from GitHub Actions instead of using Vercel's
+# own Git integration. Run it by hand from the Actions tab so the two never
+# fight over the same project.
+#
+# Setup (one time):
+#   1. Create a token at https://vercel.com/account/tokens
+#   2. Repo → Settings → Secrets and variables → Actions → New secret
+#         VERCEL_TOKEN   = the token above
+#         VERCEL_ORG_ID  = Team/User id (from `npx vercel whoami --token=...` or project settings)
+#         VERCEL_PROJECT_ID = ad-finance project id
+#   3. Optional repo variable VERCEL_PROD = "true" to also publish production
+on:
+  workflow_dispatch:
+    inputs:
+      production:
+        description: 'Publish to production (otherwise preview deployment)'
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Deploy
+        run: |
+          if [ "${{ inputs.production }}" = "true" ]; then
+            npx vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN"
+          else
+            npx vercel@latest deploy --yes --token="$VERCEL_TOKEN"
+          fi
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
