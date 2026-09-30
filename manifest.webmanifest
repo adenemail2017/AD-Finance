@@ -1,0 +1,96 @@
+{
+  "name": "AD-Finance — Pusat Keuangan Pribadi",
+  "short_name": "AD-Finance",
+  "description": "AD-Finance: e-wallet, buku besar digital, dan rekening koran pribadi. Offline-first, data tersimpan di perangkat Anda.",
+  "id": "./",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "any",
+  "background_color": "#f4f6fb",
+  "theme_color": "#1d4ed8",
+  "lang": "id-ID",
+  "dir": "ltr",
+  "categories": [
+    "finance",
+    "productivity",
+    "business"
+  ],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Catat Transaksi",
+      "short_name": "Transaksi",
+      "description": "Buka form transaksi baru",
+      "url": "./?action=add-transaction",
+      "icons": [
+        {
+          "src": "assets/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Transfer Antar Akun",
+      "short_name": "Transfer",
+      "url": "./?action=transfer",
+      "icons": [
+        {
+          "src": "assets/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Laporan Bulanan",
+      "short_name": "Laporan",
+      "url": "./?route=reports",
+      "icons": [
+        {
+          "src": "assets/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "assets/icons/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Bento dashboard AD-Finance"
+    }
+  ]
+}

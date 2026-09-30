@@ -1,0 +1,163 @@
+/* ==========================================================================
+   App layer — responsive shell behaviour, page compositions, print/PDF
+   ========================================================================== */
+
+/* ------------------------- Responsive: desktop first ---------------------- */
+@media (max-width: 1420px) {
+  .page { padding: var(--s-5); }
+}
+
+/* Tablet / small laptop — bento reflows to 2-up */
+@media (max-width: 1180px) {
+  .bento { gap: var(--s-3); }
+  .col-3, .col-4 { grid-column: span 6; }
+  .col-5, .col-7, .col-8, .col-9 { grid-column: span 12; }
+  .sidebar { padding-left: var(--s-2); }
+  .sidebar-inner { padding-inline: var(--s-2); }
+  .nav-item { padding: 9px var(--s-2); }
+}
+
+/* Sidebar becomes an off-canvas drawer on tablet portrait + mobile */
+@media (max-width: 1024px) {
+  .app-shell, .app-shell.is-collapsed { grid-template-columns: minmax(0, 1fr); }
+  .sidebar {
+    position: fixed; inset: 0 auto 0 0; width: min(300px, 86vw);
+    padding: var(--s-3) 0 var(--s-3) var(--s-3);
+    transform: translateX(-108%); transition: transform var(--t) var(--ease);
+    z-index: var(--z-modal);
+  }
+  .sidebar-inner { box-shadow: var(--sh-xl); }
+  .app-shell.is-drawer-open .sidebar { transform: none; }
+  .sidebar-scrim {
+    position: fixed; inset: 0; z-index: calc(var(--z-modal) - 1);
+    background: var(--overlay); opacity: 0; pointer-events: none; transition: opacity var(--t);
+  }
+  .app-shell.is-drawer-open .sidebar-scrim { opacity: 1; pointer-events: auto; }
+  .topbar { padding: var(--s-3) var(--s-4) 10px; }
+  .bottomnav { display: block; }
+  .page { padding: var(--s-4); padding-bottom: calc(var(--bottomnav-h) + 100px + env(safe-area-inset-bottom, 0px)); }
+  .fab { bottom: calc(var(--bottomnav-h) + 30px + env(safe-area-inset-bottom, 0px)); right: var(--s-4); }
+  .fab-menu { bottom: calc(var(--bottomnav-h) + 90px + env(safe-area-inset-bottom, 0px)); right: var(--s-4); }
+  .desktop-only { display: none !important; }
+  .mobile-only { display: initial !important; }
+}
+
+/* Mobile — single column bento, one-hand friendly forms */
+@media (max-width: 760px) {
+  .col-2, .col-3, .col-4, .col-5, .col-6, .col-7, .col-8, .col-9 { grid-column: span 12; }
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: minmax(0, 1fr); }
+  .page { padding: var(--s-3); padding-bottom: calc(var(--bottomnav-h) + 104px + env(safe-area-inset-bottom, 0px)); gap: var(--s-4); }
+  .card { padding: var(--s-4); border-radius: var(--r-lg); }
+  .card-flush { padding: 0; }
+  .atm-card { padding: 17px 18px 15px; border-radius: 20px; aspect-ratio: 1.66 / 1; gap: var(--s-3); }
+  .atm-value { font-size: clamp(24px, 7.4vw, 30px); }
+  .atm-number { font-size: 12px; letter-spacing: 0.1em; }
+  .atm-brand-text b { font-size: 13.5px; }
+  .atm-foot b { font-size: 11.5px; }
+  .atm-stats { gap: 10px var(--s-3); }
+  .sheet-body { padding: var(--s-4); }
+  .sheet-header, .sheet-footer { padding: var(--s-3) var(--s-4); }
+  .topbar-inner { min-height: 54px; padding: 0 var(--s-2) 0 var(--s-3); border-radius: 18px; }
+  .topbar h1 { font-size: 16.5px; }
+  .topbar-actions { gap: var(--s-2); }
+  .topbar-search { width: 36px; padding: 0; justify-content: center; background: transparent; }
+  .topbar-search .search-label, .topbar-search .kbd { display: none; }
+  .topbar-search:hover { background: var(--surface-3); }
+  .online-text { display: none; }
+  .online-pill { width: 28px; padding: 0; justify-content: center; }
+  .topbar-cluster { padding: 2px; }
+  .cluster-sep { display: none; }
+  .icon-btn { width: 32px; height: 32px; }
+  .avatar { width: 32px; height: 32px; }
+  .ledger-day-head { top: 74px; padding-inline: var(--s-4); }
+  .txn { padding: var(--s-3) var(--s-4); }
+  .kv { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .kv dt { margin-top: 6px; }
+  .debt-amounts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .amount-input { font-size: 22px; height: 54px; }
+  .page-head h2 { font-size: 24px; }
+  .fab { height: 50px; padding: 0 var(--s-4); }
+  .table-wrap { border-radius: var(--r-md); }
+  .statement-head { padding: var(--s-4); }
+}
+
+@media (max-width: 420px) {
+  .bn-item { font-size: 9.5px; }
+  .atm-card { aspect-ratio: 1.52 / 1; }
+  .atm-net, .atm-since { display: none; }
+  .topbar-search { display: none; }
+  .metric-value { font-size: 21px; }
+  .quick-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ------------------------------- Utilities -------------------------------- */
+.scroll-x {
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.scroll-x::-webkit-scrollbar { display: none; }
+.no-hscroll { max-width: 100%; }
+
+.sticky-sub {
+  position: sticky; top: var(--topbar-h); z-index: 3;
+  background: var(--glass); backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+@media (max-width: 1024px) { .sticky-sub { top: 76px; } }
+
+/* Dashboard hero occupies priority slot */
+.bento-hero { grid-column: span 7; }
+.bento-hero-side { grid-column: span 5; }
+@media (max-width: 1180px) {
+  .bento-hero, .bento-hero-side { grid-column: span 12; }
+}
+
+/* ------------------------------ Print / PDF ------------------------------- */
+.print-only { display: none; }
+
+/* Print-ready statement header — the PDF title block of a real bank statement */
+.print-head { color: #0b1220; margin-bottom: 14px; }
+.ph-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.ph-mark {
+  width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center;
+  background: linear-gradient(140deg, #1e3a8a, #2563eb); color: #fff; font-weight: 800; font-size: 14px;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.ph-title { font-size: 17px; font-weight: 800; letter-spacing: .06em; }
+.ph-sub { font-size: 11px; color: #475569; margin-top: 2px; }
+.ph-meta { width: 100%; border-collapse: collapse; font-size: 11px; }
+.ph-meta th, .ph-meta td { text-align: left; padding: 4px 8px; border-bottom: 1px solid #e2e8f0; }
+.ph-meta th { color: #64748b; font-weight: 600; width: 20%; }
+.ph-meta td { font-weight: 700; font-variant-numeric: tabular-nums; }
+.ph-rule { height: 3px; background: #0b1220; margin-top: 10px; border-radius: 2px; }
+
+@media print {
+  .print-only { display: block !important; }
+  .sidebar, .topbar, .bottomnav, .fab, .fab-menu, .toast-stack, .no-print { display: none !important; }
+  .app-shell { grid-template-columns: minmax(0, 1fr); }
+  .page { padding: 0; max-width: none; gap: 12px; }
+  body { background: #fff; }
+  .card { break-inside: avoid; box-shadow: none; border-color: #d5dae6; }
+  .card-hero, .atm-card, .statement-head, .networth-chip {
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  :root { --topbar-h: 0px; --bg: #fff; }
+  .ledger-day-head { position: static; }
+}
+
+/* --------------------- Cold-start / offline indicator --------------------- */
+.boot-screen {
+  position: fixed; inset: 0; display: grid; place-items: center; gap: var(--s-4);
+  background: var(--bg); z-index: 999;
+}
+.boot-mark { animation: bootPulse 1.6s var(--ease-in-out) infinite; }
+@keyframes bootPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.94); opacity: 0.72; } }
+.boot-bar { width: 180px; height: 4px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+.boot-bar > span { display: block; width: 40%; height: 100%; border-radius: 99px; background: var(--brand-500); animation: bootSlide 1.2s var(--ease-in-out) infinite; }
+@keyframes bootSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+
+/* Sync / status strip */
+.status-strip {
+  display: flex; align-items: center; gap: var(--s-2);
+  font-size: var(--fs-2xs); color: var(--text-3); padding: 0 var(--s-6) var(--s-3);
+}

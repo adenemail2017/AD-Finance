@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="id-ID" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5" />
+  <title>AD-Finance — Pusat Keuangan Pribadi</title>
+  <meta name="description" content="PWA pencatatan keuangan pribadi: pemasukan, pengeluaran, transfer, hutang, piutang, saldo bank/e-wallet/cash, rekening koran digital, laporan bulanan dan analitik. Bekerja offline." />
+
+  <meta name="theme-color" content="#1d4ed8" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Finance OS" />
+  <meta name="application-name" content="AD-Finance" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+  <link rel="mask-icon" href="assets/icons/icon.svg" color="#1d4ed8" />
+
+  <link rel="stylesheet" href="src/styles/design-system.css" />
+  <link rel="stylesheet" href="src/styles/components.css" />
+  <link rel="stylesheet" href="src/styles/app.css" />
+
+  <script>
+    // Set the theme before first paint to avoid a flash of the wrong palette.
+    (function applyStoredTheme() {
+      try {
+        var stored = localStorage.getItem('pfos:theme') || 'system';
+        var dark = stored === 'dark'
+          || (stored === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme-mode', stored);
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', dark ? '#070b14' : '#f4f6fb');
+      } catch (e) { /* storage blocked — keep default */ }
+    })();
+  </script>
+</head>
+<body>
+  <a class="sr-only" href="#app">Lewati ke konten utama</a>
+  <div id="splash" aria-hidden="true">
+    <svg viewBox="0 0 48 48" width="66" height="66" role="img" aria-label="AD-Finance">
+      <defs>
+        <linearGradient id="splashGrad" x1="4" y1="2" x2="44" y2="46" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#14245F" /><stop offset="0.5" stop-color="#1E40AF" /><stop offset="1" stop-color="#2563EB" />
+        </linearGradient>
+      </defs>
+      <rect x="1.5" y="1.5" width="45" height="45" rx="13" fill="url(#splashGrad)" />
+      <rect x="2" y="2" width="44" height="44" rx="12.4" fill="none" stroke="rgba(255,255,255,.24)" />
+      <text x="23.7" y="27.6" text-anchor="middle" font-size="15.8" font-weight="700" letter-spacing="-0.5"
+        font-family="DejaVu Sans, Verdana, 'Segoe UI', system-ui, sans-serif" fill="#fff">AD</text>
+      <rect x="17.6" y="29.6" width="12.4" height="1.7" rx="0.85" fill="rgba(255,255,255,.55)" />
+      <circle cx="36.4" cy="12.6" r="2.1" fill="#7DF3B0" />
+    </svg>
+    <div class="splash-name">AD-Finance</div>
+    <div class="splash-bar"><span></span></div>
+  </div>
+  <div id="app" class="app-shell"></div>
+
+  <noscript>
+    <div style="padding:40px;font-family:system-ui;max-width:640px;margin:0 auto">
+      <h1>AD-Finance</h1>
+      <p>Aplikasi ini membutuhkan JavaScript untuk menjalankan mesin akuntansi lokal dan menyimpan data di perangkat Anda.</p>
+    </div>
+  </noscript>
+
+  <script>
+    // Failsafe: never let the splash trap the user if the module fails to load.
+    setTimeout(function () {
+      var el = document.getElementById('splash');
+      if (el && !el.classList.contains('is-hidden')) el.classList.add('is-hidden');
+    }, 6000);
+  </script>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>

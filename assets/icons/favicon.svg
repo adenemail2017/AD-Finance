@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="512" height="512" role="img" aria-label="AD-Finance">
+  <defs>
+    <linearGradient id="adBg" x1="4" y1="2" x2="44" y2="46" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#14245F"/><stop offset="0.5" stop-color="#1E40AF"/><stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="48" height="48" rx="11.3" fill="url(#adBg)"/>
+  <rect x="0.5" y="0.5" width="47" height="47" rx="10.8" fill="none" stroke="rgba(255,255,255,.22)"/>
+  <text x="23.7" y="28.6" text-anchor="middle" font-family="DejaVu Sans, Verdana, Segoe UI, system-ui, sans-serif"
+        font-size="15.8" font-weight="700" letter-spacing="-0.5" fill="#FFFFFF">AD</text>
+  <rect x="18.1" y="31.2" width="11.6" height="1.55" rx="0.85" fill="rgba(255,255,255,.57)"/>
+  <circle cx="36.4" cy="13.4" r="2" fill="#7DF3B0"/>
+</svg>

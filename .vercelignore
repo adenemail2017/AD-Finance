@@ -1,0 +1,21 @@
+# Only the app shell is deployed — everything below stays local.
+node_modules
+.git
+.github
+.vercel
+
+# docs & tooling
+docs
+tests
+tools
+preview
+server
+*.md
+.env
+.env.*
+!README.md
+
+# generated / local artefacts
+exports
+backup-*.json
+*.tmp

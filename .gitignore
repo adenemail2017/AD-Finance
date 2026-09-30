@@ -1,0 +1,44 @@
+# dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# hosting & deploy artefacts
+.vercel/
+
+# build & tooling output
+dist/
+build/
+out/
+coverage/
+.arena/
+.cache/
+*.tmp
+*.tmp.*
+dbg*.mjs
+
+# editors & OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# local environment / secrets — never commit credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# generated data dumps & exports
+exports/
+backup-*.json
+pfos-export-*.csv
+pfos-export-*.xlsx
+
+# python tooling (icon generator)
+__pycache__/
+tools/*.pyc
