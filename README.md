@@ -2,6 +2,8 @@
 
 **Live:** <https://ad-finance-phi.vercel.app> · **Repo:** <https://github.com/adenemail2017/AD-Finance>
 
+![CI](https://github.com/adenemail2017/AD-Finance/actions/workflows/ci.yml/badge.svg)
+
 **E-wallet + buku besar keuangan digital + rekening koran pribadi** — aplikasi PWA nyata (bukan mockup) untuk mencatat, mengaudit, dan memahami seluruh uang Anda.
 
 Dibangun sebagai *local-first PWA*: seluruh data tersimpan di perangkat Anda (IndexedDB), bekerja penuh saat offline, dan tidak mengirim apa pun ke server kecuali Anda sendiri yang menyalakan sinkronisasi.
@@ -149,12 +151,12 @@ Shortcut: `N` transaksi baru · `⌘/Ctrl + K` pencarian global · `1`–`8` nav
 
 | Perintah | Cakupan | Status |
 |---|---|---|
-| `npm test` | 23 test akuntansi/XLSX + 16 test API | **39/39 hijau** |
+| `npm test` | 23 test akuntansi/XLSX + 16 test API (dijalankan lewat `tools/run-tests.mjs` agar sama di Node 20 & 22) | **39/39 hijau** |
 | `npm run test:smoke` | 140 pemeriksaan DOM (boot, 7 rute, quick add, guard, detail, hutang, budget, pencarian, notifikasi, tema, ekspor, kategori, PIN, statement, tata letak Transaksi & Laporan) | **140/140 hijau** |
 | `node tests/sandbox.dom.mjs` | boot dengan semua API penyimpanan diblokir | **12/12 hijau** |
 | `npm run check` | import/export, precache SW vs disk, manifest, ikon, budget arsitektur | **hijau** |
 
-Test menemukan bug nyata sepanjang pengerjaan — antara lain `scrollIntoView` yang mematikan form, handler pembayaran hutang yang crash karena field catatan tak ada, `%` negatif, dan bug PIN berubah yang dulu selalu menolak PIN lama yang benar.
+Test menemukan bug nyata sepanjang pengerjaan — antara lain `scrollIntoView` yang mematikan form, handler pembayaran hutang yang crash karena field catatan tak ada, `%` negatif, bug PIN berubah yang dulu selalu menolak PIN lama yang benar, dan **`node --test tests/` yang tidak lagi menerima direktori di Node 22** (ditemukan CI dua-versi di GitHub Actions, diperbaiki lewat `tools/run-tests.mjs`).
 
 ---
 

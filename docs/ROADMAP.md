@@ -62,6 +62,12 @@ Prinsip perbaikan: **satu toolbar, hierarki angka yang jelas, seksi berjudul, ta
 | Komponen baru | `statTile()`, `filterChip()`, `sectionDivider()` di `components/ui.js` + kelas `.stat-grid/.stat-tile/.tool-card/.filter-chip/.list-head/.ledger-more/.table-stack`. |
 | Pengujian | +25 pemeriksaan smoke (total **140**): struktur toolbar, chip filter yang benar-benar mempersempit daftar, paginasi, empty state, seksi laporan, baris total, dan label tabel mobile. |
 
+## Bug nyata lain (ditemukan CI dua-versi Node)
+
+| Gejala | Akar masalah | Perbaikan |
+|---|---|---|
+| CI merah di job **Node 22** sementara Node 20 hijau: `Cannot find module '.../tests'` | Node 22 tidak lagi menerima *direktori* sebagai argumen posisi `node --test`; argumen diperlakukan sebagai modul | `tools/run-tests.mjs` menemukan berkas `tests/*.test.mjs` sendiri lalu memanggil test runner dengan daftar eksplisit — portabel untuk Node 20/22, Linux/macOS/Windows |
+
 ## Sisa / berikutnya (tidak memblokir)
 
 - **Bulk edit & split transaksi** (satu struk beberapa kategori).
