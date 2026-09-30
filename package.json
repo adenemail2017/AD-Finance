@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "AD-Finance \u2014 offline-first PWA for personal income, expenses, transfers, debts, receivables, statements, reports and analytics. Zero runtime dependencies.",
+  "description": "AD-Finance — offline-first PWA for personal income, expenses, transfers, debts, receivables, statements, reports and analytics. Zero runtime dependencies.",
   "keywords": [
     "pwa",
     "personal-finance",
@@ -29,5 +29,9 @@
   "engines": {
     "node": ">=20"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adenemail2017/AD-Finance"
+  }
 }
