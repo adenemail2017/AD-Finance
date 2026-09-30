@@ -107,6 +107,18 @@ git config user.email >/dev/null 2>&1 || run git config user.email "${GIT_AUTHOR
 
 # --- 3. commit ------------------------------------------------------------
 say "3/5  Menyimpan perubahan"
+if [ -n "$REPO_URL" ] && [ "$DRY_RUN" = "0" ]; then
+  node -e '
+    const fs = require("fs");
+    const url = process.argv[1].replace(/\.git$/, "");
+    const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+    if (pkg.repository?.url !== url) {
+      pkg.repository = { type: "git", url };
+      fs.writeFileSync("package.json", `${JSON.stringify(pkg, null, 2)}\n`);
+      console.log("patched");
+    }
+  ' "$REPO_URL" | grep -q patched && ok "package.json: field repository → $REPO_URL" || true
+fi
 run git add -A
 if git diff --cached --quiet 2>/dev/null; then
   ok "tidak ada perubahan baru untuk di-commit"
@@ -128,16 +140,6 @@ if [ -n "$REPO_URL" ]; then
   else
     run git remote add "$REMOTE_NAME" "$REPO_URL"
     ok "remote $REMOTE_NAME ditambahkan → $REPO_URL"
-  fi
-  # catat alamat repo di package.json supaya ikut tampil di GitHub
-  if [ "$DRY_RUN" = "0" ]; then
-    node -e '
-      const fs = require("fs");
-      const url = process.argv[1];
-      const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-      pkg.repository = { type: "git", url: url.replace(/\.git$/, "") };
-      fs.writeFileSync("package.json", `${JSON.stringify(pkg, null, 2)}\n`);
-    ' "$REPO_URL" && ok "package.json: field repository diisi"
   fi
 elif ! git remote get-url "$REMOTE_NAME" >/dev/null 2>&1; then
   die "Belum ada remote dan tidak ada URL repo. Contoh: bash tools/publish-github.sh https://github.com/username/ad-finance.git"
