@@ -62,6 +62,26 @@ Prinsip perbaikan: **satu toolbar, hierarki angka yang jelas, seksi berjudul, ta
 | Komponen baru | `statTile()`, `filterChip()`, `sectionDivider()` di `components/ui.js` + kelas `.stat-grid/.stat-tile/.tool-card/.filter-chip/.list-head/.ledger-more/.table-stack`. |
 | Pengujian | +25 pemeriksaan smoke (total **140**): struktur toolbar, chip filter yang benar-benar mempersempit daftar, paginasi, empty state, seksi laporan, baris total, dan label tabel mobile. |
 
+## Iterasi 4 — perbaikan tata letak desktop & mobile (keluhan pengguna)
+
+Keluhan: *"Kalau dibuka di desktop tampilannya hancur banget, dan di mobile halaman Transaksi & Laporan masih berantakan."*
+Pelajaran: seluruh test DOM (jsdom) buta terhadap tata letak — jsdom tidak punya mesin layout. Perbaikan dilakukan dengan membuka aplikasi di Chromium headless dan mengukur hasilnya.
+
+| Bug nyata | Akar masalah | Perbaikan |
+|---|---|---|
+| **Desktop hancur**: sidebar melebar penuh (1182 px) dan konten terjepit 258 px | `.sidebar-scrim` (elemen drawer) tidak punya aturan di desktop sehingga ikut menempati sel grid pertama — auto-placement menggeser `.sidebar` ke kolom 2 dan `.app-main` ke kolom 1 | Penempatan grid dibuat **eksplisit** (`.sidebar { grid-column: 1 }`, `.app-main { grid-column: 2 }`), `.sidebar-scrim { display: none }` di desktop, dan scrim dikembalikan `display: block` hanya di dalam drawer mobile |
+| **Mobile**: 41 nominal transaksi terpotong ("−Rp 161.0…") | `.ledger`/`.ledger-day` memakai `display: grid` tanpa `grid-template-columns`, sehingga kolom memakai ukuran *min-content* (401 px > kartu 364 px) | `grid-template-columns: minmax(0, 1fr)` pada kedua elemen |
+| **Mobile Laporan**: tab "Rekap Bulanan" terpotong (strip 415 px > 330 px) | `.segmented` tiga tab hanya bisa di-scroll; pengguna tidak tahu masih ada tab lain | Di ≤760 px tab menjadi **grid 3 kolom** dengan label membungkus (ikon di atas teks) |
+| **Mobile**: toast menutupi bottom nav + FAB | `.toast-stack` selalu `bottom: 20px` | Di mobile toast dinaikkan di atas bottom nav (`calc(var(--bottomnav-h) + 30px)`) dan melebar mengikuti layar |
+| **Mobile**: header island dua baris | `.topbar-eyebrow` ("LAPORAN & REKENING KORAN") membungkus | eyebrow dipotong dengan ellipsis (`max-width: 46vw`) — judul halaman tetap utuh |
+| **Mobile**: hero rekening koran mendorong kartu angka ke bawah lipatan | periode diulang tiga kali (toolbar, hero, judul) | `.sh-period` disembunyikan di mobile + padding hero diringkas |
+| **Mobile Laporan**: pill "expense" melar seperti kolom input; baris "—" memakan satu baris | `.table-stack td` grid stretch; sel kosong tetap dirender | `.badge { justify-self: start }` dan sel kosong ditandai `data-empty` lalu disembunyikan di mobile |
+| **Mobile Transaksi**: baris ledger terasa sesak | aksi Saldo berjalan/Terbaru di kepala daftar | Ritme `stack-*` dirapatkan, aksi baris penuh, `.txn-side` jadi baris kedua dengan `padding-left: 54px` agar sejajar teks |
+
+**Alat baru:**
+- `tools/audit-layout.mjs` — membuka aplikasi di Chromium dan mengukur 5 viewport × 5 halaman; mendeteksi scroll horizontal, elemen keluar tepi, *min-content blowout*, dan konten yang tidak memakai lebar penuh. Bisa menyimpan screenshot (`--shots dir`).
+- `tools/check.mjs` — **8 invariant tata letak** yang menjaga perbaikan di atas tidak kembali rusak (ledger berkolom eksplisit, shell berposisi eksplisit, scrim mati di desktop, tabel tanpa min-width di layar kecil, toast di atas bottom nav, tab 3 kolom, `.txn-side`, eyebrow dipotong).
+
 ## Bug nyata lain (ditemukan CI dua-versi Node)
 
 | Gejala | Akar masalah | Perbaikan |

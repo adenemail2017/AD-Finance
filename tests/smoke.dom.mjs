@@ -571,6 +571,9 @@ check('search + filter sit in one toolbar row',
 check('period presets render as one scroll strip', qsa('#view [data-period]').length === 7, `${qsa('#view [data-period]').length}`);
 check('ledger rows are grouped per day', qsa('#view .ledger-day').length > 0, `${qsa('#view .ledger-day').length} days`);
 check('running balance is shown per row by default', qsa('#view .txn .txn-balance').length > 0);
+check('every ledger row groups the amount + running balance in .txn-side',
+  qsa('#view .txn').every((row) => Boolean(row.querySelector('.txn-side')))
+  && qsa('#view .txn-side').length === qsa('#view .txn').length, `${qsa('#view .txn-side').length} .txn-side`);
 check('summary strip shows masuk / keluar / net',
   /Masuk/.test($('#view [data-summary]').textContent) && /Keluar/.test($('#view [data-summary]').textContent)
   && /Net/.test($('#view [data-summary]').textContent));

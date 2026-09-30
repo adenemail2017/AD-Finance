@@ -11,6 +11,15 @@
 }
 .app-shell.is-collapsed { grid-template-columns: var(--sidebar-w-compact) minmax(0, 1fr); }
 
+/* Penempatan grid dibuat EKSPLISIT. Sebelumnya auto-placement, sehingga anak
+   pertama (`.sidebar-scrim`, yang di desktop tidak punya aturan sama sekali)
+   ikut menempati sel grid 1 dan menggeser seluruh layout: sidebar pindah ke
+   kolom 2 dan konten terjepit di kolom 1 selebar 258px. */
+.sidebar { grid-column: 1; grid-row: 1; }
+.app-main { grid-column: 2; grid-row: 1; }
+/* Scrim hanya dipakai drawer mobile — di desktop benar-benar tidak ada. */
+.sidebar-scrim { display: none; }
+
 .sidebar {
   position: sticky; top: 0; align-self: start;
   height: 100dvh; padding: var(--s-3) 0 var(--s-3) var(--s-3);
@@ -413,8 +422,11 @@
 .account-list { display: grid; gap: var(--s-2); }
 
 /* -------------------------------- Ledger --------------------------------- */
-.ledger { display: grid; }
-.ledger-day { display: grid; }
+.ledger { display: grid; grid-template-columns: minmax(0, 1fr); }
+/* Tanpa `grid-template-columns`, grid auto-column memakai ukuran min-content
+   (sekitar 401px pada layar 390px) sehingga baris meluber keluar kartu dan
+   nominal di sisi kanan terpotong. */
+.ledger-day { display: grid; grid-template-columns: minmax(0, 1fr); }
 .ledger-day-head {
   display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
   padding: var(--s-2) var(--s-5); background: var(--surface-2);
@@ -434,6 +446,8 @@
 }
 .txn:last-child { border-bottom: 0; }
 .txn:hover { background: var(--surface-2); }
+.txn-side { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex: none; }
+.txn-attach { display: inline-flex; align-items: center; gap: 4px; color: var(--text-3); }
 .txn-title { font-size: var(--fs-sm); font-weight: 600; letter-spacing: -0.008em; }
 .txn-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: var(--fs-2xs); color: var(--text-3); margin-top: 3px; }
 .txn-amount { font-size: var(--fs-sm); font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
@@ -873,6 +887,13 @@
   .table-stack td[data-label=""]::before, .table-stack td:not([data-label])::before { content: none; }
   .table-stack td[data-span="2"] { grid-column: span 2; }
   .table-stack td.cell-title { font-weight: 660; }
+  .table-stack tbody tr { padding: 12px 14px; gap: 8px 12px; }
+  .table-stack td, .table-stack td::before { font-size: var(--fs-2xs); }
+  .table-stack td.cell-title { font-size: var(--fs-sm); }
+  /* Badge harus seukuran teksnya, bukan melar memenuhi kolom grid. */
+  .table-stack td .badge { padding: 2px 9px; justify-self: start; align-self: start; }
+  /* Sel kosong ("—") disembunyikan supaya tidak memakan satu baris penuh. */
+  .table-stack td[data-empty] { display: none; }
     .table-wrap.is-plain { border: 0; border-radius: 0; padding: 0; }
 }
 

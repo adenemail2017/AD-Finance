@@ -20,6 +20,9 @@
 /* Sidebar becomes an off-canvas drawer on tablet portrait + mobile */
 @media (max-width: 1024px) {
   .app-shell, .app-shell.is-collapsed { grid-template-columns: minmax(0, 1fr); }
+  /* Kembali ke satu kolom: reset penempatan eksplisit dari layer komponen. */
+  .app-main { grid-column: 1; grid-row: auto; }
+  .sidebar { grid-column: auto; grid-row: auto; }
   .sidebar {
     position: fixed; inset: 0 auto 0 0; width: min(300px, 86vw);
     padding: var(--s-3) 0 var(--s-3) var(--s-3);
@@ -29,6 +32,7 @@
   .sidebar-inner { box-shadow: var(--sh-xl); }
   .app-shell.is-drawer-open .sidebar { transform: none; }
   .sidebar-scrim {
+    display: block;
     position: fixed; inset: 0; z-index: calc(var(--z-modal) - 1);
     background: var(--overlay); opacity: 0; pointer-events: none; transition: opacity var(--t);
   }
@@ -130,6 +134,87 @@
 .ph-meta th { color: #64748b; font-weight: 600; width: 20%; }
 .ph-meta td { font-weight: 700; font-variant-numeric: tabular-nums; }
 .ph-rule { height: 3px; background: #0b1220; margin-top: 10px; border-radius: 2px; }
+
+/* -------------------------------------------------------------------------- */
+/* Iterasi 4 — perbaikan mobile halaman Transaksi & Laporan                    */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 1024px) {
+  /* Toast tidak boleh menutupi bottom nav + FAB. */
+  .toast-stack {
+    left: var(--s-4); right: var(--s-4); width: auto;
+    bottom: calc(var(--bottomnav-h) + 30px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 760px) {
+  /* 1. Header island tetap satu baris: eyebrow dipotong, tidak membungkus. */
+  .topbar-eyebrow { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 46vw; letter-spacing: 0.09em; }
+  .topbar h1 { font-size: 16px; }
+
+  /* 2. Ritme halaman lebih rapat supaya isi cepat terlihat. */
+  .stack-5 { gap: var(--s-4); }
+  .stack-4 { gap: var(--s-3); }
+  .page-head { align-items: flex-start; gap: var(--s-3); }
+  .page-head h2 { font-size: 21px; }
+  .page-head p { font-size: var(--fs-xs); }
+  .page-head-actions { width: 100%; margin-left: 0; gap: var(--s-2); }
+  .page-head-actions .btn { flex: 1 1 auto; justify-content: center; height: 40px; font-size: var(--fs-xs); }
+
+  /* 3. Tab laporan jadi 3 kolom — tidak ada tab yang terpotong. */
+  .tool-card [data-tabs] {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%; padding: 3px; gap: 2px; overflow: visible;
+  }
+  .tool-card [data-tabs] button {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; padding: 7px 4px; font-size: 10.5px; line-height: 1.15;
+    white-space: normal; text-align: center;
+  }
+  .tool-card [data-tabs] button .icon { width: 15px; height: 15px; }
+  .period-scroll { width: 100%; }
+  .period-scroll .segmented { width: 100%; }
+
+  /* 4. Filter & pemilih periode menumpuk rapi, tidak berdesakan. */
+  .tool-row { gap: var(--s-2); }
+  .tool-row.is-split { flex-direction: column; align-items: stretch; }
+  .tool-row.is-split > label { justify-content: space-between; }
+  .tool-row.is-split .select { flex: 1 1 auto; }
+
+  /* 5. Baris ledger: nominal dapat barisnya sendiri, tidak terpotong lagi. */
+  .txn { flex-wrap: wrap; row-gap: 4px; }
+  .txn-side {
+    flex: 1 1 100%; flex-direction: row; align-items: baseline; justify-content: flex-end;
+    gap: var(--s-3); padding-left: 54px;
+  }
+  .txn-side .txn-balance { margin-left: auto; }
+  .ledger-day-head { padding-inline: var(--s-4); }
+  .ledger-day-head .day-total { white-space: nowrap; }
+
+  /* 6. Kartu angka & strip ringkasan lebih ringkas. */
+  .stat-tile { padding: 11px 12px; }
+  /* Label boleh membungkus dua baris — memotongnya dengan "…" lebih membingungkan. */
+  .stat-tile .st-label { font-size: 9.5px; letter-spacing: 0.04em; white-space: normal; line-height: 1.25; }
+  /* Hero rekening koran dipadatkan: periode sudah tampil di toolbar, jadi tidak
+     diulang di mobile — kartu angka tetap terlihat tanpa perlu menggulir jauh. */
+  .statement-head { padding: var(--s-3) var(--s-4); }
+  .statement-head .sh-period { display: none; }
+  .statement-head .row-between { gap: var(--s-3); }
+  .statement-head .row-between > .t-right { width: 100%; text-align: left; }
+  .statement-head .t-display { font-size: 26px; }
+  .statement-head .t-label { margin-top: var(--s-2); }
+  .statement-head .t-h2 { font-size: var(--fs-h3); }
+  .card-head { align-items: flex-start; gap: var(--s-2); }
+  .stat-tile .st-value { font-size: var(--fs-md); }
+  .list-head .lh-value { font-size: var(--fs-xs); }
+  .section-divider h3 { font-size: var(--fs-md); }
+}
+
+@media (max-width: 420px) {
+  .txn-side { padding-left: 0; }
+  .topbar-eyebrow { max-width: 38vw; }
+  .stat-tile .st-value { font-size: var(--fs-sm); }
+}
 
 @media print {
   .print-only { display: block !important; }

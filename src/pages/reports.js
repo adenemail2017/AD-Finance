@@ -227,7 +227,7 @@ export const reportsPage = {
                 <div>
                   <div class="t-label">Rekening Koran Digital</div>
                   <div class="t-h2" style="color:#fff">${esc(account ? account.name : 'Semua Akun (Portofolio)')}</div>
-                  <div class="t-xs" style="color:rgba(255,255,255,.72)">${esc(label)} · ${statement.count} transaksi · ${esc(periodText)}</div>
+                  <div class="t-xs" style="color:rgba(255,255,255,.72)">${esc(label)} · ${statement.count} transaksi<span class="sh-period"> · ${esc(periodText)}</span></div>
                 </div>
               </div>
               <div class="t-right">
@@ -297,8 +297,8 @@ export const reportsPage = {
                           <div class="t-2xs t-dim">${esc(state.accounts.find((a) => a.id === row.txn.account_id)?.name || '')}${row.txn.destination_account_id ? ` → ${esc(state.accounts.find((a) => a.id === row.txn.destination_account_id)?.name || '')}` : ''}</div>
                         </td>
                         <td data-label="Jenis" class="t-2xs">${badgeHtml(row.txn.transaction_type.replace(/_/g, ' '), 'outline')}</td>
-                        <td data-label="Debit" class="t-right t-num ${row.debit ? 't-neg' : 't-dim'}">${row.debit ? esc(money(row.debit).replace('-', '')) : '—'}</td>
-                        <td data-label="Credit" class="t-right t-num ${row.credit ? 't-pos' : 't-dim'}">${row.credit ? esc(money(row.credit).replace('-', '')) : '—'}</td>
+                        <td data-label="Debit" ${row.debit ? '' : 'data-empty'} class="t-right t-num ${row.debit ? 't-neg' : 't-dim'}">${row.debit ? esc(money(row.debit).replace('-', '')) : '—'}</td>
+                        <td data-label="Credit" ${row.credit ? '' : 'data-empty'} class="t-right t-num ${row.credit ? 't-pos' : 't-dim'}">${row.credit ? esc(money(row.credit).replace('-', '')) : '—'}</td>
                         <td data-label="Saldo" class="t-right t-num t-bold">${esc(money(row.balance))}</td>
                       </tr>`).join('')}
                   </tbody>

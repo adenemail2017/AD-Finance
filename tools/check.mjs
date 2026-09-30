@@ -181,6 +181,67 @@ sizes.forEach(({ file, lines }) => {
 });
 ok(`layers — ${Object.entries(buckets).filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join(' · ')}`);
 
+/* ------------------------------------------ 7. layout invariants ---- */
+console.log('\n\u001b[1mLayout invariants (desktop & mobile)\u001b[0m');
+const cssComponents = await readFile(join(ROOT, 'src/styles/components.css'), 'utf8');
+const cssApp = await readFile(join(ROOT, 'src/styles/app.css'), 'utf8');
+const cssDesign = await readFile(join(ROOT, 'src/styles/design-system.css'), 'utf8');
+const ruleBody = (css, selector, { from = 0 } = {}) => {
+  const at = css.indexOf(`${selector} {`, from);
+  return at === -1 ? '' : css.slice(at, css.indexOf('}', at));
+};
+
+const invariants = [
+  {
+    label: 'ledger grid memakai kolom eksplisit (bukan min-content yang meluber)',
+    pass: ['.ledger', '.ledger-day'].every((sel) => /grid-template-columns:\s*minmax\(0, 1fr\)/.test(ruleBody(cssComponents, sel))),
+    hint: '.ledger/.ledger-day tanpa grid-template-columns melebar ke min-content → nominal terpotong di mobile',
+  },
+  {
+    label: 'shell menempatkan sidebar & app-main secara eksplisit',
+    pass: /grid-column:\s*1;\s*grid-row:\s*1/.test(ruleBody(cssComponents, '.sidebar'))
+      && /grid-column:\s*2;\s*grid-row:\s*1/.test(ruleBody(cssComponents, '.app-main')),
+    hint: 'auto-placement membuat .sidebar-scrim merebut sel pertama → konten terjepit 258px di desktop',
+  },
+  {
+    label: 'sidebar scrim tidak ikut layout di desktop',
+    pass: /display:\s*none/.test(ruleBody(cssComponents, '.sidebar-scrim'))
+      && /display:\s*block/.test(ruleBody(cssApp, '.sidebar-scrim')),
+    hint: '.sidebar-scrim harus display:none di desktop dan block hanya di dalam drawer mobile',
+  },
+  {
+    label: 'tabel data tidak dipaksa lebar minimum di layar kecil',
+    pass: /@media \(min-width: 861px\)\s*\{\s*table\.data \{\s*min-width: 640px/.test(cssDesign)
+      && !/^table\.data \{[^}]*min-width: 640px/m.test(cssDesign),
+    hint: 'min-width 640px di luar media query membuat scroll horizontal di ponsel',
+  },
+  {
+    label: 'toast tidak menutupi bottom nav',
+    pass: /--bottomnav-h\)\s*\+\s*30px/.test(cssApp) && /\.toast-stack\s*\{[^}]*left:/.test(cssApp),
+    hint: 'toast di mobile harus dinaikkan di atas bottom nav + FAB',
+  },
+  {
+    label: 'tab laporan memakai 3 kolom di mobile (tidak ada tab terpotong)',
+    pass: /\[data-tabs\]\s*\{[^}]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/s.test(cssApp),
+    hint: 'segmented 3 tab meluber di 390px; harus jadi grid 3 kolom di mobile',
+  },
+  {
+    label: 'nominal baris transaksi punya wadah sendiri (.txn-side)',
+    pass: /class="txn-side"/.test(await readFile(join(ROOT, 'src/components/ledger.js'), 'utf8'))
+      && /\.txn-side\s*\{/.test(cssComponents) && /\.txn-side\s*\{[^}]*flex: 1 1 100%/s.test(cssApp),
+    hint: 'tanpa .txn-side (baris kedua di mobile) nominal kembali terpotong',
+  },
+  {
+    label: 'eyebrow header dipotong, bukan membungkus dua baris di mobile',
+    pass: /\.topbar-eyebrow\s*\{[^}]*text-overflow: ellipsis/s.test(cssApp),
+    hint: 'eyebrow panjang ("LAPORAN & REKENING KORAN") menambah tinggi header island',
+  },
+];
+for (const inv of invariants) {
+  if (inv.pass) ok(inv.label);
+  else bad(`${inv.label} — ${inv.hint}`);
+}
+
 /* ------------------------------------------------ result ------------ */
 console.log(`\n${problems === 0 ? '\u001b[32mAll integrity checks passed\u001b[0m' : `\u001b[31m${problems} problem(s) found\u001b[0m`}\n`);
 process.exit(problems === 0 ? 0 : 1);

@@ -84,10 +84,10 @@ export function txnRowHtml(txn, { balance = null, showBalance = false, state = s
         ${metaParts.map((part, i) => `${i ? '<span class="txn-dot"></span>' : ''}<span class="t-clip">${esc(part)}</span>`).join('')}
       </span>
     </span>
-    <span style="text-align:right">
+    <span class="txn-side">
       ${txnAmountHtml(txn)}
-      ${showBalance && balance !== null ? `<span class="txn-balance" style="display:block">${esc(money(balance))}</span>` : ''}
-      ${txn.attachment ? `<span class="t-dim" style="display:inline-flex;gap:4px;align-items:center;justify-content:flex-end">${icon('paperclip', { size: 12 })}</span>` : ''}
+      ${showBalance && balance !== null ? `<span class="txn-balance">${esc(money(balance))}</span>` : ''}
+      ${txn.attachment ? `<span class="txn-attach">${icon('paperclip', { size: 12 })}</span>` : ''}
     </span>
   </button>`;
 }

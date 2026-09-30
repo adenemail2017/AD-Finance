@@ -25,7 +25,8 @@
     "deploy": "bash tools/deploy-vercel.sh",
     "deploy:prod": "bash tools/deploy-vercel.sh --prod",
     "verify:bundle": "node tools/verify-bundle.mjs",
-    "audit:live": "node tools/audit-live.mjs"
+    "audit:live": "node tools/audit-live.mjs",
+    "audit:layout": "node tools/audit-layout.mjs"
   },
   "engines": {
     "node": ">=20"
