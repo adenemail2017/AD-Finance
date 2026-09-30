@@ -4,7 +4,7 @@
  */
 
 import { esc, qs, qsa } from '../utils/dom.js';
-import { money, maskAccountNumber, percent } from '../utils/format.js';
+import { MASK, maskAccountNumber, money, percent } from '../utils/format.js';
 import { formatDate, relativeDays } from '../utils/date.js';
 import { icon, iconTile, logoMark } from './icons.js';
 import { badgeHtml, moneyHtml, progressHtml } from './ui.js';
@@ -46,6 +46,7 @@ export function legendItem(label, color, { line = false } = {}) {
 
 export function metricCard({
   label, value, iconName, color = 'var(--brand-500)', sub = '', delta = null, deltaOpts = {}, spark = '', cls = 'col-3', footnote = '',
+  masked = false,
 }) {
   return `<section class="card card-hover ${cls}">
     <div class="metric">
@@ -53,7 +54,9 @@ export function metricCard({
         ${iconTile(iconName, { color, size: 28, radius: 9, iconSize: 15 })}
         <span>${esc(label)}</span>
       </div>
-      <div class="metric-value" data-count="${Number(value) || 0}">${esc(money(Number(value) || 0))}</div>
+      ${masked
+    ? `<div class="metric-value is-masked">${MASK}</div>`
+    : `<div class="metric-value" data-count="${Number(value) || 0}">${esc(money(Number(value) || 0))}</div>`}
       ${delta !== null ? deltaHtml(delta, deltaOpts) : ''}
       ${sub ? `<div class="metric-sub">${esc(sub)}</div>` : ''}
       ${footnote}
@@ -62,7 +65,7 @@ export function metricCard({
   </section>`;
 }
 
-export function accountCard({ account, balance, meta = '', onClick = '' }) {
+export function accountCard({ account, balance, meta = '', onClick = '', masked = false }) {
   const typeLabel = { bank: 'Bank', ewallet: 'E-Wallet', cash: 'Cash', investment: 'Investasi', emergency_fund: 'Dana Darurat' }[account.account_type] || 'Akun';
   return `<button class="account-card" style="--account-color:${esc(account.color)}" data-account-card="${esc(account.id)}" type="button" ${onClick}>
     <div class="account-card-top">
@@ -73,7 +76,7 @@ export function accountCard({ account, balance, meta = '', onClick = '' }) {
       </div>
       ${account.status === 'archived' ? badgeHtml('Arsip', 'outline') : ''}
     </div>
-    <div class="account-balance ${balance < 0 ? 't-neg' : ''}">${esc(money(balance))}</div>
+    <div class="account-balance ${balance < 0 ? 't-neg' : ''}">${esc(masked ? MASK : money(balance))}</div>
     <div class="account-foot">
       <span>${esc(typeLabel)}</span>
       ${meta ? `<span class="txn-dot"></span><span class="t-clip">${esc(meta)}</span>` : ''}
@@ -184,7 +187,10 @@ export function insightCard(insight) {
 export function heroCard({
   balance, monthLabel, netWorth: worth, trend, income, expense, net,
   holder = 'Pemilik Akun', cardNumber = '', institution = 'AD-Finance', since = '',
+  hideBalance = false,
 }) {
+  /** Format nominal, atau sensor bila mode privasi aktif. */
+  const m = (value, opts = {}) => (hideBalance ? MASK : money(value, opts));
   const trendPos = trend.change >= 0;
   const digits = String(cardNumber).replace(/\D/g, '');
   const last4 = digits.length >= 4 ? digits.slice(-4) : '';
@@ -215,8 +221,17 @@ export function heroCard({
         </div>
 
         <div class="atm-balance">
-          <span class="atm-label">Total Saldo</span>
-          <span class="atm-value" data-count="${balance}">${esc(money(balance))}</span>
+          <span class="atm-balance-head">
+            <span class="atm-label">Total Saldo</span>
+            <button class="atm-eye" type="button" data-toggle-secret
+              aria-pressed="${hideBalance}" aria-label="${hideBalance ? 'Tampilkan saldo' : 'Sembunyikan saldo'}"
+              title="${hideBalance ? 'Tampilkan saldo' : 'Sembunyikan saldo'}">
+              ${icon(hideBalance ? 'eye-off' : 'eye', { size: 15 })}
+            </button>
+          </span>
+          ${hideBalance
+    ? `<span class="atm-value is-masked" data-secret-value>${MASK}</span>`
+    : `<span class="atm-value" data-count="${balance}">${esc(money(balance))}</span>`}
           <span class="atm-delta ${trendPos ? 'is-pos' : 'is-neg'}">
             ${icon(trendPos ? 'trending-up' : 'trending-down', { size: 13 })}
             ${percent(trend.pct, 1, true)} · 30 hari
@@ -234,7 +249,7 @@ export function heroCard({
           </span>
           <span class="atm-net">
             <i>Net Worth</i>
-            <b>${esc(money(worth.net, { compact: true }))}</b>
+            <b>${esc(m(worth.net, { compact: true }))}</b>
           </span>
         </footer>
       </article>
@@ -243,15 +258,15 @@ export function heroCard({
     <div class="atm-stats">
       <div class="atm-stat">
         <span class="as-label">${icon('trending-up', { size: 13 })} Pemasukan</span>
-        <span class="as-value t-pos">+${esc(money(income, { compact: true }).replace('-', ''))}</span>
+        <span class="as-value t-pos">+${esc(m(income, { compact: true }).replace('-', ''))}</span>
       </div>
       <div class="atm-stat">
         <span class="as-label">${icon('trending-down', { size: 13 })} Pengeluaran</span>
-        <span class="as-value t-neg">−${esc(money(expense, { compact: true }).replace('-', ''))}</span>
+        <span class="as-value t-neg">−${esc(m(expense, { compact: true }).replace('-', ''))}</span>
       </div>
       <div class="atm-stat">
         <span class="as-label">${icon('switch', { size: 13 })} Cash Flow</span>
-        <span class="as-value ${net >= 0 ? 't-pos' : 't-neg'}">${esc(money(net, { compact: true }))}</span>
+        <span class="as-value ${net >= 0 ? 't-pos' : 't-neg'}">${esc(m(net, { compact: true }))}</span>
       </div>
       <div class="atm-stat">
         <span class="as-label">${icon('calendar', { size: 13 })} Periode</span>
@@ -260,8 +275,8 @@ export function heroCard({
     </div>
 
     <div class="atm-chips">
-      <span class="hero-chip">${icon('hand-coins', { size: 13 })} Piutang ${esc(money(worth.receivables, { compact: true }))}</span>
-      <span class="hero-chip">${icon('credit-card', { size: 13 })} Hutang ${esc(money(worth.debts, { compact: true }))}</span>
+      <span class="hero-chip">${icon('hand-coins', { size: 13 })} Piutang ${esc(m(worth.receivables, { compact: true }))}</span>
+      <span class="hero-chip">${icon('credit-card', { size: 13 })} Hutang ${esc(m(worth.debts, { compact: true }))}</span>
     </div>
   </section>`;
 }
@@ -347,15 +362,19 @@ export function animateCounters(root, { duration = 800 } = {}) {
   const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
   qsa('[data-count]', root).forEach((el) => {
     const target = Number(el.dataset.count) || 0;
-    if (reduce) { el.textContent = money(target); return; }
+    // Sebagian kartu menampilkan persentase, bukan rupiah — hormati data-format.
+    const isPercent = (el.dataset.format || 'money') === 'percent';
+    const decimals = Number(el.dataset.decimals ?? 1);
+    const fmt = (v) => (isPercent ? percent(v, decimals) : money(v));
+    if (reduce) { el.textContent = fmt(target); return; }
     const start = performance.now();
     const from = 0;
     const tick = (now) => {
       const t = Math.min(1, (now - start) / duration);
       const eased = 1 - (1 - t) ** 3;
-      el.textContent = money(from + (target - from) * eased);
+      el.textContent = fmt(from + (target - from) * eased);
       if (t < 1) requestAnimationFrame(tick);
-      else el.textContent = money(target);
+      else el.textContent = fmt(target);
     };
     requestAnimationFrame(tick);
   });

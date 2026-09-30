@@ -10,7 +10,7 @@ import {
   balanceMap, debtList, debtState, receivableList, receivableState,
 } from '../services/finance.js';
 import { esc, on, qs, qsa } from '../utils/dom.js';
-import { formatAmountTyping, money, maskAccountNumber, parseMoneyInput, initials } from '../utils/format.js';
+import { MASK, formatAmountTyping, initials, maskAccountNumber, money, parseMoneyInput } from '../utils/format.js';
 import { formatDate, formatDayHeader, nowTime, todayISO } from '../utils/date.js';
 import { icon, iconTile, CATEGORY_ICON_CHOICES, COLOR_CHOICES } from './icons.js';
 import {
@@ -55,8 +55,10 @@ export function txnVisual(txn, state = store.state) {
   };
 }
 
-export function txnAmountHtml(txn) {
+export function txnAmountHtml(txn, { masked = false } = {}) {
   const meta = TRANSACTION_TYPE_META[txn.transaction_type] || {};
+  // Mode privasi: nominal disensor dan warna dinetralkan agar arah arus pun tidak bocor.
+  if (masked) return `<span class="txn-amount is-masked">${MASK}</span>`;
   const positive = ['income', 'receivable_payment', 'debt'].includes(txn.transaction_type);
   const neutral = ['transfer', 'investment', 'emergency_fund'].includes(txn.transaction_type);
   const sign = positive ? '+' : neutral ? '' : '−';
@@ -68,7 +70,7 @@ export function txnAmountHtml(txn) {
 /* Rows & grouping                                                     */
 /* ------------------------------------------------------------------ */
 
-export function txnRowHtml(txn, { balance = null, showBalance = false, state = store.state } = {}) {
+export function txnRowHtml(txn, { balance = null, showBalance = false, state = store.state, masked = false } = {}) {
   const v = txnVisual(txn, state);
   const metaParts = [
     v.category ? v.category.name : v.meta.short,
@@ -85,8 +87,8 @@ export function txnRowHtml(txn, { balance = null, showBalance = false, state = s
       </span>
     </span>
     <span class="txn-side">
-      ${txnAmountHtml(txn)}
-      ${showBalance && balance !== null ? `<span class="txn-balance">${esc(money(balance))}</span>` : ''}
+      ${txnAmountHtml(txn, { masked })}
+      ${showBalance && balance !== null ? `<span class="txn-balance">${esc(masked ? MASK : money(balance))}</span>` : ''}
       ${txn.attachment ? `<span class="txn-attach">${icon('paperclip', { size: 12 })}</span>` : ''}
     </span>
   </button>`;
@@ -97,7 +99,7 @@ export function txnRowHtml(txn, { balance = null, showBalance = false, state = s
  * @param {Array} list transactions (already sorted desc)
  */
 export function ledgerHtml(list, {
-  showBalance = false, balances = null, balanceOf = null, state = store.state,
+  showBalance = false, balances = null, balanceOf = null, state = store.state, masked = false,
 } = {}) {
   if (!list.length) return '';
   const groups = new Map();
@@ -122,6 +124,7 @@ export function ledgerHtml(list, {
       </div>
       ${rows.map((t) => txnRowHtml(t, {
     showBalance,
+    masked,
     // prefer a true running balance when the caller can provide one
     balance: showBalance ? (balanceOf ? balanceOf(t) ?? null : (running.get(t.account_id) || 0)) : null,
     state,
@@ -145,7 +148,7 @@ export function openTransactionDetail(txnId, { onChanged, showBalance = false, b
 
   const body = `
     <div class="stack-5">
-      <div class="row" style="align-items:flex-start">
+      <div class="row txn-detail-head" style="align-items:flex-start">
         ${iconTile(v.iconName, { color: v.color, size: 52, radius: 16, iconSize: 25 })}
         <div class="grow">
           <div class="t-h3">${esc(v.title)}</div>
@@ -155,13 +158,13 @@ export function openTransactionDetail(txnId, { onChanged, showBalance = false, b
             ${v.subLabel ? badgeHtml(v.subLabel, 'outline') : ''}
           </div>
         </div>
-        <div class="t-right">
+        <div class="t-right txn-detail-amount">
           <div class="t-h2 ${positive ? 't-pos' : neutral ? '' : 't-neg'}">${positive ? '+' : neutral ? '' : '−'}${esc(money(txn.amount).replace('-', ''))}</div>
-          <div class="t-xs t-dim">${esc(formatDate(txn.date, { weekday: true }))} · ${esc(txn.time || '')}</div>
+          <div class="t-xs t-dim txn-detail-when">${esc(formatDate(txn.date, { weekday: true }))} · ${esc(txn.time || '')}</div>
         </div>
       </div>
 
-      <dl class="kv">
+      <dl class="kv kv-tight">
         <dt>Akun</dt><dd>${esc(v.accountLabel)}${balanceShown !== null ? ` <span class="t-dim">· saldo ${esc(money(balanceShown))}</span>` : ''}</dd>
         ${v.dest ? `<dt>Akun Tujuan</dt><dd>${esc(v.dest.name)}</dd>` : ''}
         ${txn.counterparty ? `<dt>Pihak</dt><dd>${esc(txn.counterparty)}</dd>` : ''}
@@ -329,7 +332,7 @@ export function openTransactionForm(cfg = {}) {
     <div class="stack-5">
       <div class="stack-2">
         <span class="field-label">Jenis Transaksi</span>
-        <div class="chip-row" data-types>${typeOptions}</div>
+        <div class="chip-row chip-grid" data-types>${typeOptions}</div>
         <span class="field-hint" data-type-hint></span>
       </div>
 
@@ -340,7 +343,7 @@ export function openTransactionForm(cfg = {}) {
           <input class="input amount-input" data-amount inputmode="numeric" autocomplete="off"
             placeholder="0" style="padding-left:44px" data-autofocus aria-label="Nominal" />
         </div>
-        <div class="chip-row">
+        <div class="chip-row chip-grid chip-grid-3" data-quick-amounts>
           ${[10_000, 50_000, 100_000, 500_000, 1_000_000].map((v) => `<button type="button" class="chip" data-add-amount="${v}">+${esc(money(v, { compact: true }))}</button>`).join('')}
           <button type="button" class="chip" data-add-amount="double">×2</button>
           <button type="button" class="chip" data-add-amount="clear">${icon('x', { size: 14 })} Clear</button>

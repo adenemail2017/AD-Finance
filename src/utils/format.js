@@ -21,6 +21,9 @@ export function getCurrency() {
 }
 
 /** Rp 1.250.000 */
+/** Pengganti nominal saat mode privasi (mata) aktif. */
+export const MASK = '\u2022\u2022\u2022\u2022\u2022\u2022';
+
 export function money(value, opts = {}) {
   const n = Number(value) || 0;
   const { compact = false, sign = false, decimals } = opts;

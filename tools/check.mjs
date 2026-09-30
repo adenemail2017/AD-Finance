@@ -236,6 +236,36 @@ const invariants = [
     pass: /\.topbar-eyebrow\s*\{[^}]*text-overflow: ellipsis/s.test(cssApp),
     hint: 'eyebrow panjang ("LAPORAN & REKENING KORAN") menambah tinggi header island',
   },
+  {
+    label: 'kartu saldo punya tombol mata (mode privasi)',
+    pass: /atm-balance-head/.test(await readFile(join(ROOT, 'src/components/cards.js'), 'utf8'))
+      && /data-toggle-secret/.test(await readFile(join(ROOT, 'src/components/cards.js'), 'utf8'))
+      && /\.atm-eye\s*\{/.test(cssComponents),
+    hint: 'Total Saldo di Home harus bisa disembunyikan lewat tombol mata yang tetap terlihat di kartu navy',
+  },
+  {
+    label: 'halaman Home menghormati setelan hide_balance',
+    pass: /settings\.hide_balance/.test(await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8'))
+      && /maskMoneyInDom/.test(await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8'))
+      && /setSetting\('hide_balance'/.test(await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8')),
+    hint: 'mode privasi harus dibaca dari settings, disimpan lewat setSetting, dan menyensor sisa nominal',
+  },
+  {
+    label: 'aksi utama sheet dapat baris penuh di mobile (tidak terpotong)',
+    pass: /\.sheet-footer \.btn-primary\s*\{[^}]*flex: 1 1 100%/s.test(cssApp),
+    hint: 'tombol "Simpan Transaksi" terpotong di tepi kanan pada 390px',
+  },
+  {
+    label: 'daftar label-nilai detail tetap dua kolom di layar sempit',
+    pass: /\.kv\.kv-tight\s*\{[^}]*minmax\(0, 1fr\)/s.test(cssApp)
+      && !/\.kv\.kv-tight\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\);/.test(cssApp),
+    hint: 'satu kolom membuat nilai panjang (referensi/akun) melebarkan sheet hingga 445px',
+  },
+  {
+    label: 'tabel rekap padat memakai tiga kolom per baris',
+    pass: /\.table-stack\.is-dense tbody tr[^{]*\{[^}]*grid-template-columns:\s*repeat\(3/s.test(cssApp),
+    hint: '9 kolom rekap menjadi 5 baris tinggi bila tetap dua kolom',
+  },
 ];
 for (const inv of invariants) {
   if (inv.pass) ok(inv.label);

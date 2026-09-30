@@ -10,7 +10,8 @@ import {
 } from '../services/finance.js';
 import { ACCOUNT_TYPES, TRANSACTION_TYPES } from '../types/models.js';
 import { esc, on, qs, qsa } from '../utils/dom.js';
-import { money, percent } from '../utils/format.js';
+import { MASK, money, percent } from '../utils/format.js';
+import { maskMoneyInDom } from '../utils/privacy.js';
 import { formatMonth, monthKey, rangeForPreset, todayISO, toISO, MONTHS_SHORT_ID } from '../utils/date.js';
 import { icon, iconTile } from '../components/icons.js';
 import { groupedBarChart, lineAreaChart, sparkline } from '../components/charts.js';
@@ -46,6 +47,9 @@ const RANGE_OPTIONS = [
 ];
 
 function cashflowChart(state, preset) {
+  // Grafik ikut menghormati mode privasi: sumbu & ringkasan disensor.
+  const hide = !!state.settings.hide_balance;
+  const fmt = (value, opts = {}) => (hide ? MASK : money(value, opts));
   const range = rangeForPreset(preset);
   if (preset === '7d' || preset === '30d') {
     const series = dailySeries(state, range.from, range.to);
@@ -63,10 +67,10 @@ function cashflowChart(state, preset) {
           { name: 'Pengeluaran', color: 'var(--neg)', values: series.map((d) => d.expense), fill: true },
         ],
         height: 250,
-        format: (v) => money(v, { compact: true }),
+        format: (v) => fmt(v, { compact: true }),
       }),
       legend: `${legendItem('Pemasukan', 'var(--pos)', { line: true })}${legendItem('Pengeluaran', 'var(--neg)', { line: true })}`,
-      sub: `${esc(money(totals.income))} masuk · ${esc(money(totals.expense))} keluar · net ${esc(money(totals.net))}`,
+      sub: `${esc(fmt(totals.income))} masuk · ${esc(fmt(totals.expense))} keluar · net ${esc(fmt(totals.net))}`,
       empty: series.every((d) => !d.income && !d.expense) ? 'Belum ada transaksi pada periode ini.' : '',
     };
   }
@@ -90,7 +94,9 @@ function cashflowChart(state, preset) {
   };
 }
 
-function netWorthCard(state) {
+function netWorthCard(state, { masked = false } = {}) {
+  /** Format nominal, atau sensor saat mode privasi aktif. */
+  const fmt = (value, opts = {}) => (masked ? MASK : money(value, opts));
   const worth = (() => {
     const summaries = accountSummaries(state);
     const balances = new Map(summaries.map((s) => [s.account.id, s.balance]));
@@ -123,7 +129,9 @@ function netWorthCard(state) {
     </div>
     <div class="card-body stack-4">
       <div>
-        <div class="metric-value" data-count="${current}">${esc(money(current))}</div>
+        ${masked
+    ? `<div class="metric-value is-masked">${MASK}</div>`
+    : `<div class="metric-value" data-count="${current}">${esc(money(current))}</div>`}
         ${deltaHtml(prev ? ((change / Math.abs(prev)) * 100) : 0, { suffix: 'vs bulan lalu' })}
       </div>
       <div style="margin:0 -4px">${sparkline(series, { color: 'var(--brand-500)', height: 62 })}</div>
@@ -134,13 +142,13 @@ function netWorthCard(state) {
         ${segs.filter((s) => s.value > 0).slice(0, 5).map((s) => `<div class="row" style="font-size:var(--fs-xs)">
           <span class="legend-swatch" style="--swatch:${s.color}"></span>
           <span class="t-muted grow">${esc(s.label)}</span>
-          <span class="t-num t-bold">${esc(money(s.value))}</span>
+          <span class="t-num t-bold">${esc(masked ? MASK : money(s.value))}</span>
           <span class="t-dim t-2xs" style="min-width:38px;text-align:right">${((s.value / total) * 100).toFixed(0)}%</span>
         </div>`).join('')}
       </div>
     </div>
     <div class="card-foot row gap-3">
-      <span class="grow t-xs t-dim">Piutang ${esc(money(state.receivables.reduce((acc, r) => acc + Math.max(0, r.principal), 0), { compact: true }))} belum dihitung sebagai aset likuid.</span>
+      <span class="grow t-xs t-dim">Piutang ${esc(fmt(state.receivables.reduce((acc, r) => acc + Math.max(0, r.principal), 0), { compact: true }))} belum dihitung sebagai aset likuid.</span>
       <button class="btn btn-sm btn-ghost" data-go="analytics">Analitik ${icon('chevron-right', { size: 14 })}</button>
     </div>
   </section>`;
@@ -155,6 +163,9 @@ export const dashboardPage = {
     let cleanupChart = () => {};
 
     const state = store.state;
+    // Mode privasi: tombol mata di kartu saldo menyembunyikan seluruh nominal di Home.
+    const hide = !!state.settings.hide_balance;
+    const m = (value, opts = {}) => (hide ? MASK : money(value, opts));
     const summary = dashboardSummary(state);
     const monthLabel = formatMonth(summary.monthKey);
     const balances = new Map(summary.accounts.map((a) => [a.account.id, a.balance]));
@@ -188,8 +199,9 @@ export const dashboardPage = {
     cardNumber: primaryAccount?.account_number || '',
     institution: 'AD-Finance',
     since: String(new Date(state.profile.created_at || Date.now()).getFullYear()),
+    hideBalance: hide,
   })}
-          ${netWorthCard(state)}
+          ${netWorthCard(state, { masked: hide })}
         </div>
 
         <div class="bento">
@@ -197,23 +209,26 @@ export const dashboardPage = {
     cls: 'col-3', label: 'Pemasukan Bulan Ini', value: summary.monthTotals.income,
     iconName: 'trending-up', color: 'var(--pos)', delta: summary.incomeDelta,
     sub: `${summary.monthTotals.count} transaksi tercatat`,
+    masked: hide,
   })}
           ${metricCard({
     cls: 'col-3', label: 'Pengeluaran Bulan Ini', value: summary.monthTotals.expense,
     iconName: 'trending-down', color: 'var(--neg)', delta: summary.expenseDelta,
     deltaOpts: { invert: true, suffix: 'vs bulan lalu' },
+    masked: hide,
   })}
           ${metricCard({
     cls: 'col-3', label: 'Net Cash Flow', value: summary.monthTotals.net,
     iconName: 'switch', color: 'var(--brand-500)', delta: summary.netDelta,
     sub: summary.monthTotals.net >= 0 ? 'Surplus — arus kas positif' : 'Defisit — pengeluaran melebihi pemasukan',
+    masked: hide,
   })}
           <section class="card col-3">
             <div class="metric">
               <div class="metric-label">${iconTile('target', { color: 'var(--accent)', size: 28, radius: 9, iconSize: 15 })}<span>Savings Rate</span></div>
-              <div class="metric-value" data-count="${Math.round(summary.monthTotals.savingsRate)}">${percent(summary.monthTotals.savingsRate, 1)}</div>
+              <div class="metric-value" data-count="${Math.round(summary.monthTotals.savingsRate)}" data-format="percent" data-decimals="1">${percent(summary.monthTotals.savingsRate, 1)}</div>
               ${deltaHtml(summary.monthTotals.savingsRate - summary.savingsPrev, { suffix: 'poin vs bulan lalu' })}
-              <div class="metric-sub">Dana darurat ${esc(money(summary.assets[ACCOUNT_TYPES.EMERGENCY_FUND] || 0, { compact: true }))} · investasi ${esc(money(summary.assets[ACCOUNT_TYPES.INVESTMENT] || 0, { compact: true }))}</div>
+              <div class="metric-sub">Dana darurat ${esc(m(summary.assets[ACCOUNT_TYPES.EMERGENCY_FUND] || 0, { compact: true }))} · investasi ${esc(m(summary.assets[ACCOUNT_TYPES.INVESTMENT] || 0, { compact: true }))}</div>
             </div>
             ${progressHtml(Math.max(0, Math.min(100, summary.monthTotals.savingsRate)), { tone: summary.monthTotals.savingsRate >= 20 ? 'pos' : 'warn' })}
           </section>
@@ -239,7 +254,7 @@ export const dashboardPage = {
                 <div class="card-head-actions"><button class="btn btn-sm btn-ghost" data-go="budgets">Kelola</button></div>
               </div>
               ${topBudgets.length
-    ? `<div>${topBudgets.map((row) => budgetRow({ row })).join('')}</div>`
+    ? `<div>${topBudgets.map((row) => budgetRow({ row, format: (v) => (hide ? MASK : money(v)) })).join('')}</div>`
     : `<div class="banner">${icon('target', { size: 18 })}<div class="grow t-xs">Tentukan budget bulanan untuk mengontrol pengeluaran.</div>
        <button class="btn btn-sm btn-soft" data-quick="budget">Buat</button></div>`}
             </section>
@@ -253,7 +268,7 @@ export const dashboardPage = {
               <div class="card-head-actions"><button class="btn btn-sm btn-outline" data-go="transactions">Lihat semua ${icon('chevron-right', { size: 14 })}</button></div>
             </div>
             <div class="ledger" data-recent>
-              ${recent.length ? ledgerHtml(recent, { state }) : `<div class="empty-state" style="padding:var(--s-7) var(--s-5)">
+              ${recent.length ? ledgerHtml(recent, { state, masked: hide }) : `<div class="empty-state" style="padding:var(--s-7) var(--s-5)">
                 ${iconTile('inbox', { size: 54, radius: 18, iconSize: 26 })}
                 <h3>Belum ada transaksi</h3><p>Mulai catat pemasukan atau pengeluaran pertama Anda.</p>
                 <button class="btn btn-primary" data-quick="expense">${icon('plus', { size: 18 })} Tambah Transaksi</button></div>`}
@@ -266,11 +281,11 @@ export const dashboardPage = {
                 <div><h3>Hutang</h3><div class="card-sub">${openDebts.length} aktif</div></div>
                 <div class="card-head-actions"><button class="btn btn-sm btn-ghost" data-go="debts">Detail</button></div>
               </div>
-              <div class="metric-value t-neg">${esc(money(summary.worth.debts))}</div>
+              <div class="metric-value t-neg${hide ? ' is-masked' : ''}">${hide ? MASK : esc(money(summary.worth.debts))}</div>
               ${nearestDebt ? `<div class="stack-2 mt-3">
                   <div class="row t-xs"><span class="t-dim grow">Jatuh tempo terdekat</span>
                     <span class="t-bold">${esc(nearestDebt.debt.counterparty)}</span></div>
-                  <div class="row t-xs"><span class="t-dim grow">Sisa</span><span class="t-num">${esc(money(nearestDebt.info.remaining))}</span></div>
+                  <div class="row t-xs"><span class="t-dim grow">Sisa</span><span class="t-num">${esc(m(nearestDebt.info.remaining))}</span></div>
                   <div class="row t-xs"><span class="t-dim grow">Tenggat</span>
                     ${badgeHtml(nearestDebt.info.isOverdue ? 'Terlambat' : (nearestDebt.debt.due_date || '-'), nearestDebt.info.isOverdue ? 'neg' : 'warn')}</div>
                   <button class="btn btn-sm btn-primary btn-block mt-2" data-pay-debt="${esc(nearestDebt.debt.id)}">${icon('hand-coins', { size: 15 })} Bayar sekarang</button>
@@ -282,10 +297,10 @@ export const dashboardPage = {
                 <div><h3>Piutang</h3><div class="card-sub">${openRec.length} aktif</div></div>
                 <div class="card-head-actions"><button class="btn btn-sm btn-ghost" data-go="debts">Detail</button></div>
               </div>
-              <div class="metric-value t-brand">${esc(money(summary.worth.receivables))}</div>
+              <div class="metric-value t-brand${hide ? ' is-masked' : ''}">${hide ? MASK : esc(money(summary.worth.receivables))}</div>
               ${nearestRec ? `<div class="stack-2 mt-3">
                   <div class="row t-xs"><span class="t-dim grow">Jatuh tempo terdekat</span><span class="t-bold">${esc(nearestRec.receivable.counterparty)}</span></div>
-                  <div class="row t-xs"><span class="t-dim grow">Sisa</span><span class="t-num">${esc(money(nearestRec.info.remaining))}</span></div>
+                  <div class="row t-xs"><span class="t-dim grow">Sisa</span><span class="t-num">${esc(m(nearestRec.info.remaining))}</span></div>
                   <div class="row t-xs"><span class="t-dim grow">Tenggat</span>
                     ${badgeHtml(nearestRec.info.isOverdue ? 'Terlambat' : (nearestRec.receivable.due_date || '-'), nearestRec.info.isOverdue ? 'neg' : 'info')}</div>
                   <button class="btn btn-sm btn-success btn-block mt-2" data-receive="${esc(nearestRec.receivable.id)}">${icon('circle-check', { size: 15 })} Catat penerimaan</button>
@@ -301,7 +316,7 @@ export const dashboardPage = {
               <div class="card-head-actions"><button class="btn btn-sm btn-outline" data-go="accounts">Kelola akun ${icon('chevron-right', { size: 14 })}</button></div>
             </div>
             <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:var(--s-3)">
-              ${accountsActive.map((row) => accountCard({
+              ${accountsActive.map((row) => accountCard({ masked: hide,
     account: row.account,
     balance: row.balance,
     meta: row.lastActivity ? `Terakhir ${row.lastActivity.slice(8, 10)}/${row.lastActivity.slice(5, 7)}` : '',
@@ -353,6 +368,14 @@ export const dashboardPage = {
     const cleanups = [
       cleanupChart,
       stopTilt,
+      on(root, 'click', '[data-toggle-secret]', async () => {
+        const next = !store.state.settings.hide_balance;
+        await store.setSetting('hide_balance', next);
+        toast(next ? 'Saldo disembunyikan.' : 'Saldo ditampilkan kembali.', {
+          tone: 'info', duration: 1800, title: next ? 'Mode privasi aktif' : 'Mode privasi nonaktif',
+        });
+        rerender();
+      }),
       on(root, 'click', '[data-txn-id]', (event, el) => {
         openTransactionDetail(el.dataset.txnId, { onChanged: rerender });
       }),
@@ -368,6 +391,13 @@ export const dashboardPage = {
       on(root, 'click', '[data-go]', (event, el) => ctx.navigate(el.dataset.go)),
       on(root, 'click', '[data-account-card]', (event, el) => ctx.navigate('accounts', { id: el.dataset.accountCard })),
     ];
+
+    if (hide) {
+      // Jaring pengaman: sisa nominal (ringkasan, sumbu grafik, tooltip) ikut disensor.
+      maskMoneyInDom(root);
+      const sweep = setTimeout(() => maskMoneyInDom(root), 950);
+      cleanups.push(() => clearTimeout(sweep));
+    }
 
     return () => cleanups.forEach((fn) => fn?.());
   },

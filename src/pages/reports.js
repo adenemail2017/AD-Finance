@@ -516,7 +516,7 @@ export const reportsPage = {
                 <div class="card-sub">Ending Balance = saldo seluruh akun pada akhir bulan (aset likuid), bukan net worth</div></div>
             </div>
             <div class="table-wrap is-plain">
-              <table class="data table-stack">
+              <table class="data table-stack is-dense">
                 <thead>
                   <tr>
                     <th>Bulan</th><th class="t-right">Income</th><th class="t-right">Expense</th>

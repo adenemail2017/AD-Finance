@@ -30,6 +30,7 @@ npm start          # → http://localhost:4173
 | Cash flow saya sehat? | Dashboard → **Net Cash Flow** + grafik arus kas |
 | Kekayaan bersih (net worth)? | Analytics → **Net Worth** = (bank + cash + e-wallet + investasi + piutang) − hutang |
 | Bulan ini vs bulan lalu? | Dashboard → delta % pada setiap kartu |
+| Sedang ada orang lain di dekat saya? | Dashboard → tombol **mata** di kartu Total Saldo (mode privasi) |
 
 ---
 
@@ -46,9 +47,9 @@ DATABASE_URL=postgres://user:pass@host/db npm run api   # dengan PostgreSQL
 
 # 3. Verifikasi
 npm test                  # 39 unit + integration test (node:test)
-npm run test:smoke        # 141 pemeriksaan DOM end-to-end + 12 pemeriksaan sandbox (JSDOM)
+npm run test:smoke        # 156 pemeriksaan DOM end-to-end + 12 pemeriksaan sandbox (JSDOM)
 npm run check             # integritas statis: import/export, SW, manifest, ikon
-npm run verify            # jalankan semuanya sekaligus (154 pemeriksaan)
+npm run verify            # jalankan semuanya sekaligus (39 unit + 156 DOM + 12 sandbox)
 ```
 
 `npm test` membutuhkan Node ≥ 18. Untuk smoke test, install sekali: `npm install --no-save jsdom`.
@@ -152,9 +153,9 @@ Shortcut: `N` transaksi baru · `⌘/Ctrl + K` pencarian global · `1`–`8` nav
 | Perintah | Cakupan | Status |
 |---|---|---|
 | `npm test` | 23 test akuntansi/XLSX + 16 test API (dijalankan lewat `tools/run-tests.mjs` agar sama di Node 20 & 22) | **39/39 hijau** |
-| `npm run test:smoke` | 141 pemeriksaan DOM (boot, 7 rute, quick add, guard, detail, hutang, budget, pencarian, notifikasi, tema, ekspor, kategori, PIN, statement, tata letak Transaksi & Laporan) | **141/141 hijau** |
+| `npm run test:smoke` | 156 pemeriksaan DOM (boot, 7 rute, quick add, guard, detail, hutang, budget, pencarian, notifikasi, tema, ekspor, kategori, PIN, statement, **mode privasi saldo**, tata letak Transaksi & Laporan) | **156/156 hijau** |
 | `node tests/sandbox.dom.mjs` | boot dengan semua API penyimpanan diblokir | **12/12 hijau** |
-| `npm run check` | import/export, precache SW vs disk, manifest, ikon, budget arsitektur, **8 invariant tata letak** | **hijau** |
+| `npm run check` | import/export, precache SW vs disk, manifest, ikon, budget arsitektur, **13 invariant tata letak** | **hijau** |
 | `npm run audit:layout -- <url>` | tata letak di browser sungguhan: 5 viewport × 5 halaman (scroll horizontal, elemen keluar tepi, konten terjepit) | **25/25 bersih** |
 
 Test menemukan bug nyata sepanjang pengerjaan — antara lain `scrollIntoView` yang mematikan form, handler pembayaran hutang yang crash karena field catatan tak ada, `%` negatif, bug PIN berubah yang dulu selalu menolak PIN lama yang benar, dan **`node --test tests/` yang tidak lagi menerima direktori di Node 22** (ditemukan CI dua-versi di GitHub Actions, diperbaiki lewat `tools/run-tests.mjs`).
@@ -165,6 +166,7 @@ Test menemukan bug nyata sepanjang pengerjaan — antara lain `scrollIntoView` y
 
 - Navigasi mengambang: sidebar berbentuk panel membulat, header satu "pulau" membulat berisi pencarian + status + aksi, bottom nav pil mengambang dengan FAB bulat.
 - Kartu **Total Saldo** tampil sebagai kartu ATM/e-wallet premium: lockup brand, chip EMV, gelombang contactless, nomor rekening ter-mask, nama pemegang kartu, "Member Since", dan efek tilt 3D yang mengikuti kursor.
+- **Mode privasi sekali klik:** tombol **mata** di kartu saldo menyembunyikan seluruh nominal di Home (kartu, metrik, saldo akun, transaksi terbaru, hutang/piutang, termasuk label sumbu grafik dan tooltip) menjadi `••••••`. Preferensi disimpan sebagai setelan `hide_balance`, jadi tetap aktif saat aplikasi dibuka kembali. Persentase (mis. Savings Rate, perubahan %) tetap tampil karena tidak membocorkan nominal.
 - Kontras memenuhi WCAG AA pada kedua tema; semua kontrol punya label/`aria-*`; fokus ter-trap di dialog; navigasi keyboard penuh; `prefers-reduced-motion` dihormati.
 - Tanpa framework: payload kecil, boot < 0,5 detik pada JSDOM, grafik berupa SVG inline (bukan canvas berat), animasi memakai `transform`/`opacity` agar tetap 60 fps.
 - Responsif penuh: sidebar (desktop) → sidebar ringkas (tablet) → bottom nav + sheet setinggi satu tangan (mobile). Tidak ada scroll horizontal di mobile.

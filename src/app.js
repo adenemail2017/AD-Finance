@@ -11,7 +11,7 @@ import { unreadCount, refreshNotifications } from './services/notifications.js';
 import { hasPin, isUnlocked, markUnlocked, verifyPin } from './services/security.js';
 import { registerServiceWorker, checkForUpdate, cacheVersion } from './sw-client.js';
 import { esc, on, qs, qsa } from './utils/dom.js';
-import { money } from './utils/format.js';
+import { MASK, money } from './utils/format.js';
 import { formatMonth, todayISO, monthKey } from './utils/date.js';
 import { icon, iconTile, logoMark } from './components/icons.js';
 import {
@@ -300,7 +300,8 @@ function updateShell() {
   void badge;
 
   const networth = qs('[data-networth]', root);
-  if (networth) networth.textContent = money(netWorthValue(state));
+  // Mode privasi berlaku juga untuk angka di luar halaman (chip sidebar & sheet profil).
+  if (networth) networth.textContent = state.settings.hide_balance ? MASK : money(netWorthValue(state));
 
   const avatar = qs('[data-profile]', root);
   if (avatar) avatar.textContent = initialsOf(state.profile.name);
@@ -471,7 +472,7 @@ function openProfileMenu() {
     size: 'sm',
     body: `<div class="stack-4">
       <div class="stat-row">
-        <div class="stat-box"><div class="stat-label">Net Worth</div><div class="stat-value">${esc(money(netWorthValue(state)))}</div></div>
+        <div class="stat-box"><div class="stat-label">Net Worth</div><div class="stat-value">${esc(state.settings.hide_balance ? MASK : money(netWorthValue(state)))}</div></div>
         <div class="stat-box"><div class="stat-label">Transaksi</div><div class="stat-value">${state.transactions.length}</div></div>
       </div>
       <div class="row-between t-xs"><span class="t-dim">Mode tema</span>

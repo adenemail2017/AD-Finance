@@ -231,11 +231,11 @@ export const transactionsPage = {
           <span class="lh-label">Net</span>
           ${moneyHtml(net, { sign: true, cls: 'lh-value' })}
         </div>
-        <div class="lh-fig">
+        <div class="lh-fig lh-figure-wide">
           <span class="lh-label">Periode</span>
           <span class="lh-value t-xs">${esc(formatDate(range.from, { year: false }))} – ${esc(formatDate(range.to))}</span>
         </div>
-        <div class="lh-fig">
+        <div class="lh-fig lh-figure-wide">
           <span class="lh-label">Jumlah</span>
           <span class="lh-value t-xs">${list.length} transaksi</span>
         </div>`;

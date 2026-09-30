@@ -306,6 +306,30 @@
 }
 .atm-card > *:not(.atm-glow):not(.atm-grid) { position: relative; z-index: 1; }
 
+/* Baris label Total Saldo + tombol mata (mode privasi) */
+.atm-balance-head { display: flex; align-items: center; gap: 8px; }
+.atm-eye {
+  display: inline-grid; place-items: center; width: 26px; height: 26px; flex: none;
+  border-radius: 99px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.24);
+  color: rgba(255, 255, 255, 0.92);
+  transition: background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.atm-eye:hover { background: rgba(255, 255, 255, 0.26); border-color: rgba(255, 255, 255, 0.4); }
+.atm-eye:active { transform: scale(0.94); }
+.atm-eye[aria-pressed="true"] { background: rgba(125, 243, 176, 0.22); border-color: rgba(125, 243, 176, 0.45); color: #eafff4; }
+.atm-eye svg { width: 15px; height: 15px; }
+
+/* Nominal tersensor: titik-titik tetap terbaca jelas tanpa membocorkan angka */
+.atm-value.is-masked,
+.metric-value.is-masked,
+.account-balance.is-masked,
+.txn-amount.is-masked {
+  letter-spacing: 0.14em; font-weight: 640; color: var(--text-3);
+}
+.atm-value.is-masked { color: rgba(255, 255, 255, 0.8); font-size: 22px; letter-spacing: 0.24em; }
+.metric-value.is-masked { font-size: var(--fs-h3); }
+
 .atm-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-3); }
 .atm-brand { display: inline-flex; align-items: center; gap: 9px; }
 .atm-brand .logo-mark { border-radius: 9px; box-shadow: 0 8px 16px -10px rgba(0, 0, 0, 0.7); }

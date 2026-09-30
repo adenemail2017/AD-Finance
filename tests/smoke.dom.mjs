@@ -184,6 +184,43 @@ check('recent transactions listed', $$('[data-recent] .txn').length > 0, `${$$('
 check('financial insights generated', $$('.insight').length >= 3, `${$$('.insight').length}`);
 check('budget health widget', text().includes('Kesehatan Budget'));
 
+section('Mode privasi saldo (tombol mata)');
+const eyeBtn = $('#view [data-toggle-secret]');
+check('kartu saldo menampilkan tombol mata', Boolean(eyeBtn) && Boolean(eyeBtn.querySelector('svg')));
+check('tombol mata menjelaskan fungsinya', /Tampilkan|Sembunyikan|sembunyikan/i.test(eyeBtn?.getAttribute('aria-label') || ''),
+  eyeBtn?.getAttribute('aria-label'));
+check('kondisi awal: saldo terlihat (aria-pressed=false)', eyeBtn?.getAttribute('aria-pressed') === 'false');
+const heroBefore = $('.atm-card .atm-value')?.textContent.trim();
+click(eyeBtn);
+await sleep(60);
+const heroAfter = $('.atm-card .atm-value')?.textContent.trim();
+check('sekali klik menyembunyikan Total Saldo', Boolean(heroAfter) && !/Rp/.test(heroAfter), `${heroBefore} → ${heroAfter}`);
+check('setelan hide_balance tersimpan di pengaturan', state.settings.hide_balance === true, String(state.settings.hide_balance));
+check('ikon berubah menjadi mata tertutup', /eye-off|aria-pressed="true"/.test($('#view [data-toggle-secret]').outerHTML));
+check('saldo akun ikut disensor', $$('#view .account-balance').length > 0
+  && $$('#view .account-balance').every((el) => !/Rp/.test(el.textContent)),
+  $$('#view .account-balance')[0]?.textContent.trim());
+check('nominal transaksi terbaru ikut disensor', $$('#view [data-recent] .txn-amount').length > 0
+  && $$('#view [data-recent] .txn-amount').every((el) => !/Rp/.test(el.textContent)));
+check('chip Net Worth di sidebar ikut disensor', (() => {
+  const chip = $('#app [data-networth]');
+  return !chip || !/Rp/.test(chip.textContent);
+})(), $('#app [data-networth]')?.textContent.trim());
+check('kartu metrik tidak lagi memuat nominal', $$('#view .metric-value').every((el) => !/Rp/.test(el.textContent)),
+  $$('#view .metric-value').map((el) => el.textContent.trim()).join(' | '));
+const privacy = await import(join(ROOT, 'src/utils/privacy.js'));
+const scratch = doc.createElement('div');
+scratch.innerHTML = '<span title="Saldo Rp 2.500.000">Sisa Rp 1.234.000 dari anggaran</span><em>Tidak ada angka</em>';
+const maskedCount = privacy.maskMoneyInDom(scratch);
+check('maskMoneyInDom menyensor teks & tooltip', maskedCount === 2 && !/Rp\s?\d/.test(scratch.innerHTML), `${maskedCount} sensor`);
+check('maskMoneyInDom tidak mengubah teks tanpa nominal', /Tidak ada angka/.test(scratch.textContent));
+click($('#view [data-toggle-secret]'));
+await sleep(60);
+check('klik kedua menampilkan saldo kembali', /Rp/.test($('.atm-card .atm-value')?.textContent || ''),
+  $('.atm-card .atm-value')?.textContent.trim());
+check('setelan hide_balance kembali false', state.settings.hide_balance === false, String(state.settings.hide_balance));
+check('tombol mata tetap ada setelah dikembalikan', Boolean($('#view [data-toggle-secret]')));
+
 section('Routing — every page renders');
 // Each route is verified by waiting for the shell title to switch (the real
 // navigation barrier) *and* for page-specific content, so leftover DOM from the

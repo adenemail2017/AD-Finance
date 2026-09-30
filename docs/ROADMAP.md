@@ -100,6 +100,29 @@ Pelajaran: seluruh test DOM (jsdom) buta terhadap tata letak — jsdom tidak pun
 - **Sinkronisasi dua arah dengan resolusi konflik** (versi `updated_at` + merge per field) — saat ini server menang per operasi.
 - **Ekspor PDF langsung** (saat ini lewat dialog cetak browser — tanpa dependensi, hasil sama).
 
+## Iterasi 5 — mode privasi saldo + tata letak mobile (Transaksi, Laporan, Detail, Form)
+
+**Permintaan:** (1) "Tambahkan fitur mata untuk menyembunyikan Total Saldo yang ada di halaman Home";
+(2) rapikan tampilan mobile **Transaksi**, **Laporan**, **Detail Transaksi**, **Edit Transaksi**, **Transaksi Baru**.
+
+**Apa yang dikerjakan**
+
+| Area | Sebelum | Sesudah |
+|---|---|---|
+| Kartu Total Saldo | nominal selalu terbaca | ada **tombol mata** (`aria-pressed`, ikon `eye` ⇄ `eye-off`); sekali klik → `••••••`, setelan `hide_balance` tersimpan lewat `setSetting` |
+| Kebocoran nominal Home | — | metrik, saldo akun, transaksi terbaru, hutang/piutang, ringkasan grafik, **label sumbu SVG**, dan `title`/`aria-label` ikut disensor oleh `maskMoneyInDom()` (jaring pengaman, jadi komponen baru otomatis aman) |
+| Strip ringkasan Transaksi | 5 figur bertumpuk 246 px | dua nominal sebagai ubin + sisanya baris label–nilai berpenyangga putus-putus ≈ 150 px |
+| Blok atas Transaksi | ledger baru mulai y≈715 px | header, alat, dan ringkasan dipadatkan → ledger mulai ≈ 480 px |
+| Form Transaksi Baru/Edit | footer meluber, tombol utama terpotong di tepi kanan | **tombol utama satu baris penuh** (46 px) + dua aksi sekunder; jenjang jenis transaksi & nominal cepat jadi grid; kategori 2 kolom dengan gulir internal; tanggal & waktu tetap berdampingan; input 16 px (anti zoom iOS) |
+| Detail Transaksi | nominal + tanggal berdesakan di satu baris, kv melebar 445 px | tanggal turun ke baris sendiri, kv tetap **dua kolom** dengan `minmax(0,1fr)` + `overflow-wrap:anywhere` sehingga token panjang (no. referensi) tidak melebarkan sheet |
+| Rekap Bulanan | tiap baris 232 px (2 kolom) | `.table-stack.is-dense` → 3 kolom per baris, label & nilai sebaris: 232 px → **173 px** |
+| Kartu angka Laporan | label panjang membungkus bebas | label maksimal dua baris (`-webkit-line-clamp`), padding & font dipadatkan |
+| Bug ditemukan | "Savings Rate" tampil **-Rp 26** | `animateCounters()` selalu memformat uang → kini menghormati `data-format="percent"`; kartu menampilkan **-26.0%** |
+
+**Alat verifikasi:** invariant tata letak `tools/check.mjs` bertambah 5 (total **13**) dan smoke DOM bertambah 15 (total **156**) — termasuk klik tombol mata, penyensoran saldo akun/transaksi/metrik, dan unit `maskMoneyInDom`.
+
+**Catatan operasional:** modul baru `src/utils/privacy.js` masuk daftar precache `sw.js` (pemeriksa statis menolak bila lupa) dan versi cache dinaikkan ke `adfinance-v2.1.0` agar PWA lama mengambil berkas baru.
+
 ## Prinsip untuk perubahan berikutnya
 
 1. Jangan rusak invarian akuntansi (`docs/ACCOUNTING.md`).
