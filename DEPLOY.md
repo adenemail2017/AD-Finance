@@ -1,5 +1,16 @@
 # Deploy AD-Finance ke GitHub & Vercel
 
+## Status integrasi (30 Sep 2026)
+
+| Bagian | Status |
+|---|---|
+| GitHub | <https://github.com/adenemail2017/AD-Finance> — publik, branch `main`. Commit awal repo tetap jadi akar riwayat. |
+| Vercel | Proyek **ad-finance** terhubung ke repo GitHub (production branch `main`) → setiap push auto-deploy. |
+| Produksi | <https://ad-finance-phi.vercel.app> — publik, sudah lolos audit. |
+| Alias lain | `ad-finance-this-is-ad.vercel.app`, `ad-finance-git-main-*.vercel.app`, dan URL per-deployment **meminta login Vercel** karena proyek ini mengaktifkan *Deployment Protection* (`ssoProtection: all_except_custom_domains`). Jadi selalu bagikan **ad-finance-phi.vercel.app** — atau matikan proteksinya di *Settings ▸ Deployment Protection ▸ Vercel Authentication ▸ Only Preview Deployments*. |
+| Audit produksi | `npm run audit:live -- https://ad-finance-phi.vercel.app` → semua lolos: header, 41 entri precache, berkas internal 404, boot aplikasi dari berkas produksi. |
+| CI GitHub Actions | **Menunggu izin `Workflows: Read and write`** pada fine-grained token, atau tambahkan berkasnya manual (lihat `salin-ci-ke-github.md`). |
+
 AD-Finance adalah **PWA statis tanpa build step** — tidak ada bundler, tidak ada
 dependency runtime, tidak ada server yang wajib. Karena itu deploy-nya paling
 sederhana: unggah berkasnya, selesai. Dokumen ini memandu dua langkah itu
@@ -28,6 +39,7 @@ sederhana: unggah berkasnya, selesai. Dokumen ini memandu dua langkah itu
 | `tools/publish-github.sh` | Satu perintah untuk membuat repo git, membuat repositori GitHub, commit, dan push. |
 | `tools/deploy-vercel.sh` | Satu perintah untuk verifikasi lalu deploy ke Vercel (preview atau produksi). |
 | `tools/verify-bundle.mjs` | Menyalin tepat berkas yang akan diunggah, lalu membuktikan precache SW lengkap, semua aset ada, dan aplikasi tetap boot dari paket itu (`npm run verify:bundle`). |
+| `tools/audit-live.mjs` | Memeriksa deployment yang sudah live: header, precache, berkas internal, lalu mem-boot aplikasi dari berkas produksi (`npm run audit:live -- <url>`). |
 | `.gitignore` / `.env.example` | `node_modules`, `.env`, `.vercel`, dan berkas lokal lain tidak pernah ikut ter-commit. |
 
 ---
@@ -228,6 +240,7 @@ dikecualikan oleh `.vercelignore`).
 npm run dev            # jalankan lokal di http://localhost:4173
 npm run verify         # check + 39 unit + 140 smoke + 12 sandbox + verifikasi paket deploy
 npm run verify:bundle  # hanya memeriksa isi unggahan Vercel (cepat)
+npm run audit:live -- https://ad-finance-phi.vercel.app   # audit deployment produksi
 npm test               # hanya unit + API
 GH_TOKEN=… bash tools/publish-github.sh --create ad-finance
 VERCEL_TOKEN=… bash tools/deploy-vercel.sh --prod

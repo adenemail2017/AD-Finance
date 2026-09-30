@@ -1,5 +1,7 @@
 # AD-Finance
 
+**Live:** <https://ad-finance-phi.vercel.app> · **Repo:** <https://github.com/adenemail2017/AD-Finance>
+
 **E-wallet + buku besar keuangan digital + rekening koran pribadi** — aplikasi PWA nyata (bukan mockup) untuk mencatat, mengaudit, dan memahami seluruh uang Anda.
 
 Dibangun sebagai *local-first PWA*: seluruh data tersimpan di perangkat Anda (IndexedDB), bekerja penuh saat offline, dan tidak mengirim apa pun ke server kecuali Anda sendiri yang menyalakan sinkronisasi.
@@ -197,6 +199,7 @@ satu-perintah. Panduan lengkap (berbahasa Indonesia) ada di **[DEPLOY.md](DEPLOY
 | `tools/publish-github.sh` | `GH_TOKEN=… bash tools/publish-github.sh --create ad-finance` → repo dibuat, commit, push. |
 | `tools/deploy-vercel.sh` | `VERCEL_TOKEN=… bash tools/deploy-vercel.sh --prod` → verifikasi dulu, lalu deploy. |
 | `tools/verify-bundle.mjs` | Meniru isi unggahan Vercel lalu membuktikan precache SW lengkap dan aplikasi tetap boot. |
+| `tools/audit-live.mjs` | `npm run audit:live -- <url>` — memeriksa header, precache, dan mem-boot aplikasi dari deployment produksi. |
 
 ```bash
 npm run verify                                   # check + 39 unit + 140 smoke + 12 sandbox + paket deploy
