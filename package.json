@@ -29,7 +29,7 @@
     "audit:layout": "node tools/audit-layout.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   },
   "license": "MIT",
   "repository": {
