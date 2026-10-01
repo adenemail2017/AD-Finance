@@ -306,6 +306,28 @@ const invariants = [
       && !/state\.version \? `v\$\{state\.version\}`/.test(await readFile(join(ROOT, 'src/pages/settings.js'), 'utf8')),
     hint: 'state.version berisi versi skema data (=1); versi rilis harus dari sw-client.js',
   },
+  {
+    label: 'ledger di dalam sheet memakai .ledger-card (tanpa max-height/scroll internal)',
+    pass: /class="ledger-card"/.test(await readFile(join(ROOT, 'src/pages/accounts.js'), 'utf8'))
+      && /class="ledger-card"/.test(await readFile(join(ROOT, 'src/pages/debts.js'), 'utf8'))
+      && !/class="ledger" style="border:1px solid var\(--line\)/.test(await readFile(join(ROOT, 'src/pages/accounts.js'), 'utf8'))
+      && /\.ledger-card\s*\{/.test(cssComponents),
+    hint: 'kotak bergulir 240px di dalam sheet memotong baris di tengah → pakai daftar ringkas tanpa scroll',
+  },
+  {
+    label: 'ledger ringkas: baris is-compact, tanggal per baris, header hari statis',
+    pass: /if \(compact\)/.test(await readFile(join(ROOT, 'src/components/ledger.js'), 'utf8'))
+      && /class="txn\$\{compact \? ' is-compact' : ''\}"/.test(await readFile(join(ROOT, 'src/components/ledger.js'), 'utf8'))
+      && /\.txn\.is-compact \.txn-date/.test(cssComponents)
+      && /position: static/.test(cssComponents.slice(cssComponents.indexOf('.ledger-day.is-compact'))),
+    hint: 'header hari sticky menimpa baris di dalam kotak bergulir; tanggal harus jadi label baris',
+  },
+  {
+    label: 'tombol "Lihat semua" pada ledger tersemat bisa diklik (data-statement)',
+    pass: /data-statement>\s*$|data-statement>/.test(await readFile(join(ROOT, 'src/pages/accounts.js'), 'utf8'))
+      && /ledger-more/.test(cssComponents),
+    hint: 'tanpa tombol ini pengguna tidak tahu ada transaksi lain di luar 6 baris',
+  },
 ];
 for (const inv of invariants) {
   if (inv.pass) ok(inv.label);

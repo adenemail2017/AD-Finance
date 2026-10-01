@@ -563,7 +563,7 @@ function openNotificationsPanel() {
     iconName: 'bell',
     size: 'md',
     body: list.length
-      ? `<div class="ledger" style="border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden">
+      ? `<div class="ledger-card ledger-card-flat">
           ${list.map((n) => `<div class="notif-item ${n.read ? '' : 'is-unread'}" data-notif="${esc(n.id)}" data-route="${esc(n.action?.route || '')}" data-params="${esc(JSON.stringify(n.action?.params || {}))}">
             ${iconTile(n.icon || 'bell', { color: n.tone === 'neg' ? 'var(--neg)' : n.tone === 'warn' ? 'var(--warn)' : n.tone === 'info' ? 'var(--info)' : 'var(--brand-500)', size: 38, radius: 12, iconSize: 18 })}
             <div class="grow" style="min-width:0">

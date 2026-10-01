@@ -239,7 +239,7 @@ export function openDebtDetail(debtId, { onChanged } = {}) {
         </div>
 
         ${payments.length ? `<div><div class="field-label mb-2">Transaksi terkait</div>
-          <div class="ledger" style="border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden">${ledgerHtml(payments, { state })}</div></div>` : ''}
+          <div class="ledger-card">${ledgerHtml(payments, { state, compact: true, limit: 5 })}</div></div>` : ''}
       </div>`,
     footer: `
       <button class="btn btn-ghost" data-edit>${icon('edit', { size: 16 })} Edit</button>

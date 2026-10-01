@@ -459,6 +459,57 @@
   backdrop-filter: blur(8px);
 }
 .ledger-day:first-child .ledger-day-head { border-top: 0; }
+
+/* -------------------- Ledger tersemat di dalam sheet/popup --------------- */
+/* Kotak berbingkai tanpa scroll internal: semua baris yang ditampilkan utuh,
+   sisanya diakses lewat tombol "Lihat semua" (tidak ada baris terpotong). */
+.ledger-card {
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  overflow: hidden; background: var(--surface);
+}
+.ledger-card-flat { border: 0; border-radius: 0; }
+
+/* Versi ringkas: header hari statis (tidak lagi lengket & menimpa baris),
+   tinggi baris ±48 px, nominal tetap sebaris di kanan. */
+.ledger-day.is-compact .ledger-day-head,
+.ledger.is-compact .ledger-day-head {
+  position: static; backdrop-filter: none;
+  padding: 7px var(--s-4); background: var(--surface-2);
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  font-size: 10px; font-weight: 660; letter-spacing: 0.06em; text-transform: uppercase;
+}
+.ledger.is-compact .ledger-day:first-child .ledger-day-head { border-top: 0; }
+.ledger.is-compact .ledger-day-head .day-total { font-size: 10px; letter-spacing: 0; text-transform: none; }
+.txn.is-compact {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center; gap: 10px; padding: 8px var(--s-4); min-height: 48px;
+  flex-wrap: nowrap; row-gap: 0;
+}
+.txn.is-compact .txn-side { flex: none; flex-direction: row; align-items: center; gap: 6px; padding-left: 0; }
+.txn.is-compact .txn-title { font-size: var(--fs-xs); }
+.txn.is-compact .txn-meta {
+  margin-top: 2px; font-size: 10.5px; gap: 5px;
+  flex-wrap: nowrap; overflow: hidden; white-space: nowrap;
+}
+.txn.is-compact .txn-date {
+  flex: none; font-weight: 660; color: var(--text-2);
+  font-variant-numeric: tabular-nums; min-width: 46px;
+}
+.txn.is-compact .txn-meta .t-clip { flex: 0 1 auto; }
+.txn.is-compact .txn-meta .t-clip { min-width: 0; }
+.txn.is-compact .txn-amount { font-size: var(--fs-xs); }
+.txn.is-compact .txn-dot { flex: none; }
+.txn.is-compact .icon-tile { flex: none; }
+
+/* Tombol "Lihat semua" di bawah ledger tersemat */
+.ledger-more {
+  display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
+  padding: 11px var(--s-4); border-top: 1px solid var(--line); background: var(--surface-2);
+  color: var(--brand-600); font-size: var(--fs-xs); font-weight: 660; cursor: pointer;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+  border-left: 0; border-right: 0; border-bottom: 0;
+}
+.ledger-more:hover { background: var(--brand-50); color: var(--brand-700); }
 .ledger-day-head .day-total { font-variant-numeric: tabular-nums; }
 
 .txn {

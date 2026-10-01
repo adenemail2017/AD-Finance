@@ -149,6 +149,9 @@ export const accountsPage = {
 /* Account detail                                                      */
 /* ------------------------------------------------------------------ */
 
+/** Jumlah baris transaksi yang tampil di popup (sisanya lewat tombol "Lihat semua"). */
+const RECENT_LIMIT = 6;
+
 export function openAccountDetail(accountId, { onChanged, navigate } = {}) {
   const state = store.state;
   const account = state.accounts.find((a) => a.id === accountId);
@@ -202,9 +205,12 @@ export function openAccountDetail(accountId, { onChanged, navigate } = {}) {
             <span class="field-label">Transaksi terakhir</span>
             <button class="btn btn-sm btn-ghost" data-statement>Rekening koran ${icon('chevron-right', { size: 14 })}</button>
           </div>
-          <div class="ledger" style="border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;max-height:240px;overflow-y:auto">
-            ${history.length ? ledgerHtml(history.slice(0, 25), { state }) : '<div class="t-xs t-dim" style="padding:var(--s-4)">Belum ada transaksi pada akun ini.</div>'}
-          </div>
+          ${history.length ? `<div class="ledger-card">
+            ${ledgerHtml(history, { state, compact: true, limit: RECENT_LIMIT, hideAccount: true })}
+            ${history.length > RECENT_LIMIT ? `<button class="ledger-more" type="button" data-statement>
+              Lihat semua ${history.length} transaksi ${icon('chevron-right', { size: 14 })}
+            </button>` : ''}
+          </div>` : '<div class="t-xs t-dim" style="padding:var(--s-4)">Belum ada transaksi pada akun ini.</div>'}
         </div>
       </div>`,
     footer: `

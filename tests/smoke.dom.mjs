@@ -410,6 +410,18 @@ check('popup akun menampilkan 3 kartu arus 30 hari', $$('.overlay .sheet .grid.g
   `${$$('.overlay .sheet .grid.grid-3 .stat-box').length}`);
 check('grafik popup akun memakai mode ringkas (.chart-compact)', Boolean($('.overlay .chart-compact')));
 check('popup akun memuat nomor akun ter-mask', /••••/.test($('.overlay [data-number]')?.textContent || ''));
+check('ledger "Transaksi terakhir" memakai kotak tanpa scroll internal',
+  Boolean($('.overlay .ledger-card')) && !/max-height/.test($('.overlay .ledger-card .ledger')?.getAttribute('style') || ''),
+  $('.overlay .ledger-card .ledger')?.getAttribute('style') || '(bersih)');
+const embeddedRows = $$('.overlay .ledger-card .txn');
+check('ledger tersemat memakai baris ringkas (is-compact)', embeddedRows.length > 0 && embeddedRows.every((el) => el.classList.contains('is-compact')),
+  `${embeddedRows.length} baris`);
+check('ledger tersemat dibatasi 6 baris + tombol "Lihat semua"',
+  embeddedRows.length <= 6 && /Lihat semua \d+ transaksi/.test($('.overlay .ledger-more')?.textContent || ''),
+  $('.overlay .ledger-more')?.textContent.trim());
+check('setiap baris tersemat membawa tanggalnya sendiri (tanpa header hari yang menimpa)',
+  embeddedRows.every((el) => Boolean(el.querySelector('.txn-date'))) && !$('.overlay .ledger-card .ledger-day-head'));
+check('baris tersemat tidak mengulang nama akun', !/· BCA ·/.test($('.overlay .ledger-card')?.textContent || ''));
 click($('.overlay [data-close]'));
 await sleep(80);
 

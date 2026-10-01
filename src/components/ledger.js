@@ -70,20 +70,32 @@ export function txnAmountHtml(txn, { masked = false } = {}) {
 /* Rows & grouping                                                     */
 /* ------------------------------------------------------------------ */
 
-export function txnRowHtml(txn, { balance = null, showBalance = false, state = store.state, masked = false } = {}) {
+export function txnRowHtml(txn, {
+  balance = null, showBalance = false, state = store.state, masked = false,
+  compact = false, hideAccount = false, dateLabel = '',
+} = {}) {
   const v = txnVisual(txn, state);
-  const metaParts = [
-    v.category ? v.category.name : v.meta.short,
-    v.subLabel,
-    v.transferLabel || v.accountLabel,
-    txn.time,
-  ].filter(Boolean);
-  return `<button class="txn" data-txn-id="${esc(txn.id)}" type="button">
-    ${iconTile(v.iconName, { color: v.color, size: 42, radius: 13, iconSize: 20 })}
+  // Mode ringkas: cukup dua keterangan supaya tidak ada teks yang terpotong —
+  // arah transfer/kategori + jam. Tanggal tampil sebagai label di awal baris.
+  // Label transfer dipersingkat menjadi arah + tujuan ("→ Reksadana") supaya
+  // jam dan kategori tetap terbaca di baris yang sempit.
+  const transferShort = v.dest ? `→ ${v.dest.name}` : '';
+  const metaParts = compact
+    ? [transferShort || (v.category ? v.category.name : v.meta.short), txn.time].filter(Boolean)
+    : [
+      v.category ? v.category.name : v.meta.short,
+      v.subLabel,
+      // Di ledger milik satu akun, mengulang nama akun di setiap baris hanya menambah bising.
+      v.transferLabel || (hideAccount ? null : v.accountLabel),
+      txn.time,
+    ].filter(Boolean);
+  return `<button class="txn${compact ? ' is-compact' : ''}" data-txn-id="${esc(txn.id)}" type="button">
+    ${iconTile(v.iconName, { color: v.color, size: compact ? 34 : 42, radius: compact ? 11 : 13, iconSize: compact ? 17 : 20 })}
     <span class="grow" style="min-width:0">
       <span class="txn-title t-clip" style="display:block">${esc(v.title)}</span>
       <span class="txn-meta">
-        ${metaParts.map((part, i) => `${i ? '<span class="txn-dot"></span>' : ''}<span class="t-clip">${esc(part)}</span>`).join('')}
+        ${dateLabel ? `<span class="txn-date">${esc(dateLabel)}</span>` : ''}
+        ${metaParts.map((part, i) => `${i || dateLabel ? '<span class="txn-dot"></span>' : ''}<span class="t-clip">${esc(part)}</span>`).join('')}
       </span>
     </span>
     <span class="txn-side">
@@ -100,20 +112,39 @@ export function txnRowHtml(txn, { balance = null, showBalance = false, state = s
  */
 export function ledgerHtml(list, {
   showBalance = false, balances = null, balanceOf = null, state = store.state, masked = false,
+  compact = false, limit = 0, hideAccount = false,
 } = {}) {
   if (!list.length) return '';
+  // `limit` dipakai untuk ledger tersemat di dalam sheet: tanpa kotak bergulir
+  // yang memotong baris di tengah; sisanya diakses lewat tombol "Lihat semua".
+  const rows = limit > 0 ? list.slice(0, limit) : list;
   const groups = new Map();
-  list.forEach((t) => {
+  rows.forEach((t) => {
     if (!groups.has(t.date)) groups.set(t.date, []);
     groups.get(t.date).push(t);
   });
   const running = balances || balanceMap(state);
-  return [...groups.entries()].map(([date, rows]) => {
-    const inSum = rows.filter((t) => ['income', 'receivable_payment', 'debt'].includes(t.transaction_type))
+
+  if (compact) {
+    // Tanpa pengelompokan per hari: setiap baris membawa tanggalnya sendiri,
+    // sehingga daftarnya rata, padat, dan tidak ada baris yang terpotong.
+    return `<div class="ledger is-compact">${rows.map((t) => txnRowHtml(t, {
+      showBalance,
+      masked,
+      compact: true,
+      hideAccount,
+      dateLabel: formatDate(t.date, { year: false, short: true }),
+      balance: showBalance ? (balanceOf ? balanceOf(t) ?? null : (running.get(t.account_id) || 0)) : null,
+      state,
+    })).join('')}</div>`;
+  }
+
+  return [...groups.entries()].map(([date, dayRows]) => {
+    const inSum = dayRows.filter((t) => ['income', 'receivable_payment', 'debt'].includes(t.transaction_type))
       .reduce((acc, t) => acc + t.amount, 0);
-    const outSum = rows.filter((t) => ['expense', 'debt_payment', 'receivable'].includes(t.transaction_type))
+    const outSum = dayRows.filter((t) => ['expense', 'debt_payment', 'receivable'].includes(t.transaction_type))
       .reduce((acc, t) => acc + t.amount, 0);
-    return `<section class="ledger-day">
+    return `<section class="ledger-day${compact ? ' is-compact' : ''}">
       <div class="ledger-day-head">
         <span>${esc(formatDayHeader(date))}</span>
         <span class="day-total">
@@ -122,9 +153,11 @@ export function ledgerHtml(list, {
           ${outSum ? `<span class="money-neg">−${esc(money(outSum).replace('-', ''))}</span>` : ''}
         </span>
       </div>
-      ${rows.map((t) => txnRowHtml(t, {
+      ${dayRows.map((t) => txnRowHtml(t, {
     showBalance,
     masked,
+    compact,
+    hideAccount,
     // prefer a true running balance when the caller can provide one
     balance: showBalance ? (balanceOf ? balanceOf(t) ?? null : (running.get(t.account_id) || 0)) : null,
     state,
