@@ -272,7 +272,7 @@ export const dashboardPage = {
         </div>
 
         <div class="bento">
-          <section class="card card-flush col-8">
+          <section class="card card-flush col-12">
             <div class="card-head" style="padding:var(--s-5) var(--s-5) var(--s-3)">
               <div><h3>Transaksi Terbaru</h3><div class="card-sub">${summary.monthTotals.count} transaksi bulan ini · 5 terakhir</div></div>
               <div class="card-head-actions"><button class="btn btn-sm btn-outline" data-go="transactions">Lihat semua ${icon('chevron-right', { size: 14 })}</button></div>
@@ -284,8 +284,24 @@ export const dashboardPage = {
                 <button class="btn btn-primary" data-quick="expense">${icon('plus', { size: 18 })} Tambah Transaksi</button></div>`}
             </div>
           </section>
+        </div>
 
-          <div class="col-4 stack-4">
+        <div class="bento">
+          <div class="col-8 stack-4">
+            <section class="card">
+              <div class="card-head">
+                <div><h3>Saldo Akun</h3><div class="card-sub">${accountsActive.length} akun terhubung</div></div>
+                <div class="card-head-actions"><button class="btn btn-sm btn-outline" data-go="accounts">Kelola akun ${icon('chevron-right', { size: 14 })}</button></div>
+              </div>
+              ${accountRail({
+    masked: hide,
+    accounts: accountsActive.map((row) => ({
+      account: row.account,
+      balance: row.balance,
+      meta: row.lastActivity ? `${row.lastActivity.slice(8, 10)}/${row.lastActivity.slice(5, 7)}` : '',
+    })),
+  })}
+            </section>
             <section class="card">
               <div class="card-head">
                 <div><h3>Hutang &amp; Piutang</h3><div class="card-sub">${openDebts.length + openRec.length} catatan aktif · 1 pengingat terdekat</div></div>
@@ -298,23 +314,6 @@ export const dashboardPage = {
   })}
             </section>
           </div>
-        </div>
-
-        <div class="bento">
-          <section class="card col-8">
-            <div class="card-head">
-              <div><h3>Saldo Akun</h3><div class="card-sub">${accountsActive.length} akun terhubung</div></div>
-              <div class="card-head-actions"><button class="btn btn-sm btn-outline" data-go="accounts">Kelola akun ${icon('chevron-right', { size: 14 })}</button></div>
-            </div>
-            ${accountRail({
-    masked: hide,
-    accounts: accountsActive.map((row) => ({
-      account: row.account,
-      balance: row.balance,
-      meta: row.lastActivity ? `${row.lastActivity.slice(8, 10)}/${row.lastActivity.slice(5, 7)}` : '',
-    })),
-  })}
-          </section>
           <section class="card col-4">
             <div class="card-head">
               <div><h3>Financial Insights</h3><div class="card-sub">Berdasarkan data Anda</div></div>
