@@ -496,3 +496,37 @@
 @media (max-width: 420px) {
   .pair-cta-text { display: none; }
 }
+
+/* --------- Visual refresh 2.4: penyesuaian responsif komponen baru -------- */
+@media (max-width: 1180px) {
+  .insight-rail { grid-auto-columns: minmax(280px, 1fr); }
+  .chip-rail { padding-bottom: 6px; }
+}
+@media (max-width: 760px) {
+  .card { border-radius: 20px; }
+  .card-head h3 { font-size: var(--fs-sm); }
+  .quick-strip { padding: var(--s-4) var(--s-3) var(--s-3); }
+  .quick-strip .kbd-hint { display: none; }
+  .chip { padding: 8px 13px 8px 8px; font-size: var(--fs-2xs); }
+  .chip .icon-tile { width: 24px; height: 24px; }
+  .account-rail { grid-auto-columns: minmax(164px, 1fr); }
+  .rail-foot { font-size: 10.5px; }
+  .insight-rail { grid-auto-columns: minmax(258px, 1fr); }
+  .pair-value { font-size: 18px; }
+  .sum-value { font-size: 17px; }
+}
+@media (max-width: 420px) {
+  .rail-foot-hint { max-width: 58%; }
+}
+
+/* Kartu grafik di ponsel: judul tidak boleh terjepit oleh kontrol rentang.
+   (Kartu ini "chart-card" khusus beranda agar halaman lain tidak berubah.) */
+@media (max-width: 760px) {
+  /* Flexbox sempat menaruh kontrol rentang di luar tepi kartu (terjepit),
+     jadi kepala kartu dibuat grid satu kolom: judul di atas, kontrol di bawah. */
+  .chart-card .card-head { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-items: start; }
+  .chart-card .card-head .card-sub { line-height: 1.45; }
+  .chart-card .card-head-actions { width: 100%; margin-left: 0; }
+  .chart-card .segmented { width: 100%; }
+  .chart-card .segmented button { flex: 1 1 0; }
+}

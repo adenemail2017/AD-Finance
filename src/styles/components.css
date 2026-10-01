@@ -1117,3 +1117,179 @@
 .pair-value { font-size: var(--fs-h3); font-weight: 720; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 .pair-sub { font-size: var(--fs-2xs); color: var(--text-3); margin-top: 2px; }
 .pair-row .btn { flex: none; }
+
+/* ==========================================================================
+   Visual refresh 2.4 — "Bento premium"
+   Lapisan ini mengubah BAHASA VISUAL (warna, kedalaman, ritme) tanpa mengubah
+   struktur/hook: semua selektor lama tetap ada agar invarian & smoke berlaku.
+   ========================================================================== */
+
+/* ------------------------- Kanvas: aura di belakang ---------------------- */
+.app-shell {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(1200px 560px at 4% -12%, color-mix(in srgb, var(--brand-500) 16%, transparent), transparent 62%),
+    radial-gradient(980px 520px at 102% -10%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 58%);
+  background-repeat: no-repeat;
+}
+:root[data-theme='dark'] .app-shell {
+  background-image:
+    radial-gradient(1200px 560px at 2% -14%, color-mix(in srgb, var(--brand-500) 34%, transparent), transparent 62%),
+    radial-gradient(980px 520px at 104% -10%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 58%);
+}
+
+/* -------------------- Kartu: sudut besar, bayangan berwarna --------------- */
+.card {
+  border-radius: 22px;
+  border-color: color-mix(in srgb, var(--line) 78%, transparent);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, #0f172a 5%, transparent),
+    0 20px 40px -32px color-mix(in srgb, #14285a 60%, transparent);
+  background-image: linear-gradient(158deg, color-mix(in srgb, var(--card-tint, var(--brand-500)) 7%, transparent), transparent 46%);
+}
+:root[data-theme='dark'] .card {
+  border-color: color-mix(in srgb, var(--line) 90%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #ffffff 5%, transparent) inset,
+    0 26px 54px -38px #000;
+  background-image: linear-gradient(158deg, color-mix(in srgb, var(--card-tint, var(--brand-500)) 14%, transparent), transparent 48%);
+}
+.card-head h3 { font-size: var(--fs-md); font-weight: 705; letter-spacing: -0.016em; }
+.card-head .card-sub { font-size: var(--fs-xs); color: var(--text-3); }
+.tint-brand { --card-tint: var(--brand-500); }
+.tint-pos { --card-tint: var(--pos); }
+.tint-warn { --card-tint: var(--warn); }
+.tint-accent { --card-tint: var(--accent); }
+.tint-info { --card-tint: var(--info); }
+
+/* ------------------------------- Chip aksi cepat -------------------------- */
+.quick-strip .card-head { margin-bottom: var(--s-3); }
+.kbd-hint {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--fs-2xs); color: var(--text-3);
+  padding: 5px 10px; border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--surface-3) 80%, transparent);
+  border: 1px solid var(--line);
+}
+.chip-rail {
+  display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 4px;
+  scroll-snap-type: x proximity; scrollbar-width: none; -ms-overflow-style: none;
+}
+.chip-rail::-webkit-scrollbar { height: 0; }
+.chip {
+  display: inline-flex; align-items: center; gap: 9px; flex: 0 0 auto;
+  padding: 8px 15px 8px 9px; border-radius: var(--r-pill); scroll-snap-align: start;
+  background: var(--surface); border: 1px solid var(--line);
+  box-shadow: 0 1px 2px color-mix(in srgb, #0f172a 6%, transparent), 0 12px 22px -20px color-mix(in srgb, #14285a 70%, transparent);
+  font-size: var(--fs-xs); font-weight: 660; color: var(--text);
+  transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.chip:hover {
+  transform: translateY(-2px); border-color: color-mix(in srgb, var(--brand-500) 34%, var(--line));
+  box-shadow: 0 1px 2px color-mix(in srgb, #0f172a 6%, transparent), 0 16px 26px -20px color-mix(in srgb, #14285a 80%, transparent);
+}
+.chip:active { transform: translateY(0) scale(0.97); }
+:root[data-theme='dark'] .chip { background: color-mix(in srgb, var(--surface-2) 92%, transparent); }
+
+/* ---------------------- Ringkasan bulanan: angka berwarna ----------------- */
+.sum-tile { border-top: 0; position: relative; padding-top: 14px; }
+.sum-tile::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 3px; border-radius: var(--r-pill);
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--sum-color) 95%, transparent),
+    color-mix(in srgb, var(--sum-color) 8%, transparent));
+}
+.sum-value { color: var(--sum-color, var(--text)); font-size: clamp(18px, 1.6vw, 24px); }
+.sum-head .icon-tile { box-shadow: 0 6px 14px -10px color-mix(in srgb, var(--sum-color, var(--brand-500)) 90%, transparent); }
+
+/* ------------------------ Rail akun: ubin berwarna ----------------------- */
+.account-rail { grid-auto-columns: minmax(178px, 1fr); gap: var(--s-3); padding: 2px 2px 6px; }
+.account-card.is-mini {
+  background-image: linear-gradient(155deg, color-mix(in srgb, var(--account-color, var(--brand-500)) 16%, transparent), transparent 66%);
+  border-color: color-mix(in srgb, var(--account-color, var(--brand-500)) 26%, var(--line));
+  box-shadow:
+    0 1px 2px color-mix(in srgb, #0f172a 5%, transparent),
+    0 14px 26px -22px color-mix(in srgb, var(--account-color, var(--brand-500)) 90%, transparent);
+}
+.account-card.is-mini::before {
+  width: 3px;
+  background: linear-gradient(180deg, var(--account-color, var(--brand-500)), color-mix(in srgb, var(--account-color, var(--brand-500)) 22%, transparent));
+}
+.account-card.is-mini:hover { transform: translateY(-3px); }
+.account-card.is-mini .account-balance { font-size: clamp(16px, 1.45vw, 18px); }
+.rail-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
+  margin-top: var(--s-3); padding-top: var(--s-3); border-top: 1px dashed var(--line);
+  font-size: var(--fs-2xs); color: var(--text-3);
+}
+.rail-foot-total b { color: var(--text); font-size: var(--fs-sm); margin-left: 4px; }
+
+/* --------------------- Hutang & Piutang: kartu ber-tint ------------------ */
+.pair-row {
+  border-radius: 16px;
+  background-image: linear-gradient(140deg, color-mix(in srgb, var(--tone, var(--brand-500)) 12%, transparent), transparent 70%);
+  border-color: color-mix(in srgb, var(--tone, var(--brand-500)) 26%, var(--line));
+}
+.pair-row[data-pair='debt'] { --tone: var(--warn); }
+.pair-row[data-pair='rec'] { --tone: var(--brand-500); }
+.pair-label { text-transform: uppercase; letter-spacing: 0.055em; font-size: 10.5px; }
+.pair-value { font-size: clamp(18px, 1.7vw, 21px); }
+
+/* ---------------------- Insight: rail horizontal + aksen ------------------ */
+.insight-rail {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(290px, 1fr); gap: var(--s-3);
+  overflow-x: auto; scroll-snap-type: x proximity; padding: 2px 2px 6px;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.insight-rail::-webkit-scrollbar { height: 0; }
+.insight-slide { display: flex; min-width: 0; }
+.insight-slide > .insight { flex: 1 1 auto; align-items: flex-start; }
+.insight { border-radius: 16px; }
+.insight.is-pos { background-image: linear-gradient(150deg, color-mix(in srgb, var(--pos) 11%, transparent), transparent 62%); }
+.insight.is-warn { background-image: linear-gradient(150deg, color-mix(in srgb, var(--warn) 12%, transparent), transparent 62%); }
+.insight.is-neg { background-image: linear-gradient(150deg, color-mix(in srgb, var(--neg) 11%, transparent), transparent 62%); }
+.insight.is-brand { background-image: linear-gradient(150deg, color-mix(in srgb, var(--brand-500) 11%, transparent), transparent 62%); }
+
+/* ----------------------------- Baris ledger ------------------------------- */
+.txn.is-compact { min-height: 52px; }
+.txn.is-compact:hover { background: color-mix(in srgb, var(--brand-500) 5%, transparent); }
+.txn.is-compact .txn-title { font-weight: 620; }
+.txn.is-compact .txn-amount { font-size: var(--fs-sm); font-weight: 720; }
+.card-flush > .ledger-card { border-radius: 0; }
+
+/* ------------------------------- Grafik ---------------------------------- */
+.chart-area { opacity: 0.2; }
+.chart-grid-line { stroke: color-mix(in srgb, var(--line) 72%, transparent); stroke-dasharray: 3 6; }
+
+/* -------------------- Animasi masuk berjenjang (stagger) ------------------ */
+@keyframes bentoRise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .page-enter > .bento { animation: bentoRise 520ms var(--ease) both; }
+  .page-enter > .bento:nth-child(2) { animation-delay: 45ms; }
+  .page-enter > .bento:nth-child(3) { animation-delay: 90ms; }
+  .page-enter > .bento:nth-child(4) { animation-delay: 135ms; }
+  .page-enter > .bento:nth-child(5) { animation-delay: 180ms; }
+  .page-enter > .bento:nth-child(6) { animation-delay: 225ms; }
+  .page-enter > .bento:nth-child(n + 7) { animation-delay: 270ms; }
+}
+
+/* Rail chip & insight: tepi memudar agar potongan kartu terbaca sebagai
+   "masih ada lagi", bukan terpotong. Kelas diatur oleh sinkronisasi JS. */
+.chip-rail.is-overflow:not(.at-end),
+.insight-rail.is-overflow:not(.at-end) {
+  mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 34px), transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 34px), transparent 100%);
+}
+.chip-rail.is-overflow:not(.at-start),
+.insight-rail.is-overflow:not(.at-start) {
+  mask-image: linear-gradient(90deg, transparent 0, #000 30px, #000 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 30px, #000 100%);
+}
+.chip-rail.is-overflow:not(.at-start):not(.at-end),
+.insight-rail.is-overflow:not(.at-start):not(.at-end) {
+  mask-image: linear-gradient(90deg, transparent 0, #000 30px, #000 calc(100% - 34px), transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 30px, #000 calc(100% - 34px), transparent 100%);
+}

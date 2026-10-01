@@ -451,6 +451,31 @@ export function quickActions(list) {
 }
 
 /**
+ * Aksi cepat sebagai deretan chip horizontal — lebih ringan daripada kartu
+ * berisi 8 ubin, dan tetap memakai hook `data-quick` yang sama.
+ * @param {Array<{key,label,icon,color}>} list
+ */
+export function quickChipRail(list) {
+  return `<div class="chip-rail" data-chip-rail tabindex="0" role="toolbar" aria-label="Aksi cepat mencatat transaksi">
+    ${list.map((a) => `<button class="chip" data-quick="${esc(a.key)}" type="button">
+      ${iconTile(a.icon, { color: a.color, size: 26, radius: 9, iconSize: 14 })}
+      <span>${esc(a.label)}</span>
+    </button>`).join('')}
+  </div>`;
+}
+
+/**
+ * Baris penutup kartu rail: total ringkas + petunjuk geser.
+ * @param {{label: string, value: string, hint?: string}} cfg
+ */
+export function railFoot({ label, value, hint = '' }) {
+  return `<div class="rail-foot">
+    <span class="rail-foot-hint">${esc(hint)}</span>
+    <span class="rail-foot-total"><span class="t-dim">${esc(label)}</span> <b class="t-num">${esc(value)}</b></span>
+  </div>`;
+}
+
+/**
  * Subtle 3D response for [data-atm-card]: the card tips toward the cursor and a
  * highlight sweeps across it. Skipped entirely for touch/prefers-reduced-motion.
  */

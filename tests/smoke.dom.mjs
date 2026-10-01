@@ -215,6 +215,24 @@ check('transaksi terbaru memakai ledger ringkas tanpa header hari',
   `${$$('#view [data-recent] .txn').length} baris`);
 check('shortcut ke halaman hutang/piutang tetap ada (data-go=debts)',
   Boolean($('#view [data-go="debts"]')));
+
+section('Bahasa visual 2.4 di beranda');
+check('aksi cepat tampil sebagai chip rail berisi 8 aksi',
+  $$('#view .chip-rail .chip').length === 8, `${$$('#view .chip-rail .chip').length} chip`);
+check('chip memakai hook data-quick yang sama (alur tidak berubah)',
+  $$('#view .chip-rail .chip[data-quick]').length === 8);
+check('insight tampil sebagai rail horizontal',
+  $$('#view .insight-rail .insight').length >= 3, `${$$('#view .insight-rail .insight').length} insight`);
+check('kartu grafik beranda ditandai chart-card (kepala kartu aman di ponsel)',
+  Boolean($('#view .chart-card .chart-svg')));
+check('kartu memakai tint bahasa visual baru',
+  $$('#view .card.tint-brand, #view .card.tint-warn, #view .card.tint-accent').length >= 3,
+  `${$$('#view .card[class*="tint-"]').length} kartu ber-tint`);
+check('rail akun menampilkan total saldo di kaki kartu',
+  (() => {
+    const foot = $('#view .rail-foot');
+    return Boolean(foot) && /Total saldo aktif/.test(foot.textContent);
+  })());
 check('financial insights generated', $$('.insight').length >= 3, `${$$('.insight').length}`);
 check('budget health widget', text().includes('Kesehatan Budget'));
 

@@ -47,9 +47,9 @@ DATABASE_URL=postgres://user:pass@host/db npm run api   # dengan PostgreSQL
 
 # 3. Verifikasi
 npm test                  # 39 unit + integration test (node:test)
-npm run test:smoke        # 190 pemeriksaan DOM end-to-end + 12 pemeriksaan sandbox (JSDOM)
+npm run test:smoke        # 196 pemeriksaan DOM end-to-end + 12 pemeriksaan sandbox (JSDOM)
 npm run check             # integritas statis: import/export, SW, manifest, ikon
-npm run verify            # jalankan semuanya sekaligus (39 unit + 190 DOM + 12 sandbox)
+npm run verify            # jalankan semuanya sekaligus (39 unit + 196 DOM + 12 sandbox)
 ```
 
 `npm test` membutuhkan Node ≥ 18. Untuk smoke test, install sekali: `npm install --no-save jsdom`.
@@ -153,9 +153,9 @@ Shortcut: `N` transaksi baru · `⌘/Ctrl + K` pencarian global · `1`–`8` nav
 | Perintah | Cakupan | Status |
 |---|---|---|
 | `npm test` | 23 test akuntansi/XLSX + 16 test API (dijalankan lewat `tools/run-tests.mjs` agar sama di Node 20 & 22) | **39/39 hijau** |
-| `npm run test:smoke` | 190 pemeriksaan DOM (boot, 7 rute, quick add, guard, detail, hutang, budget, pencarian, notifikasi, tema, ekspor, kategori, PIN, statement, **mode privasi saldo**, **beranda ringkas (rail akun, ringkasan bulanan, hutang-piutang)**, tata letak Transaksi & Laporan) | **190/190 hijau** |
+| `npm run test:smoke` | 196 pemeriksaan DOM (boot, 7 rute, quick add, guard, detail, hutang, budget, pencarian, notifikasi, tema, ekspor, kategori, PIN, statement, **mode privasi saldo**, **beranda ringkas (rail akun, ringkasan bulanan, hutang-piutang)**, **bahasa visual 2.4**, tata letak Transaksi & Laporan) | **196/196 hijau** |
 | `node tests/sandbox.dom.mjs` | boot dengan semua API penyimpanan diblokir | **12/12 hijau** |
-| `npm run check` | import/export, precache SW vs disk, manifest, ikon, budget arsitektur, **26 invariant tata letak** | **hijau** |
+| `npm run check` | import/export, precache SW vs disk, manifest, ikon, budget arsitektur, **30 invariant tata letak** | **hijau** |
 | `npm run audit:layout -- <url>` | tata letak di browser sungguhan: 5 viewport × 5 halaman (scroll horizontal, elemen keluar tepi, konten terjepit) | **25/25 bersih** |
 
 Test menemukan bug nyata sepanjang pengerjaan — antara lain `scrollIntoView` yang mematikan form, handler pembayaran hutang yang crash karena field catatan tak ada, `%` negatif, bug PIN berubah yang dulu selalu menolak PIN lama yang benar, dan **`node --test tests/` yang tidak lagi menerima direktori di Node 22** (ditemukan CI dua-versi di GitHub Actions, diperbaiki lewat `tools/run-tests.mjs`).

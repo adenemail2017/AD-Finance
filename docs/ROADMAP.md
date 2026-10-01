@@ -165,6 +165,34 @@ ke daftar transaksi.
 **Bukti:** `preview/beranda-ringkas.png` · **Verifikasi:** +4 invariant (total 26), +10 pemeriksaan smoke
 (total 190), 11 pemeriksaan interaksi Chromium (`qa/interaksi8.mjs`), `audit:layout` hijau di 5 viewport.
 
+## Iterasi 8 — tampilan dirombak ulang (bahasa visual 2.4)
+
+**Laporan:** "Masih sama saja, perbaiki kembali tampilan UI-nya, saya kurang suka — coba buat ulang yang
+lebih bagus."
+
+Jadi bukan lagi soal merapatkan, tetapi **mengganti bahasa visual**: kanvas ber-aura, kartu ber-tint warna,
+aksi cepat jadi chip, insight jadi rail, tepi memudar, animasi masuk berjenjang. Struktur & hook lama
+dipertahankan supaya seluruh invarian akuntansi dan 196 pemeriksaan smoke tetap berlaku.
+
+| Lapisan | Sebelum | Sesudah |
+|---|---|---|
+| Kanvas | rata `#f4f6fb` | dua aura radial (brand + accent) di belakang konten, versi gelap lebih pekat |
+| Kartu | putih rata, sudut 18 px | sudut 22 px + gradien tint halus (`--card-tint`: brand/pos/warn/accent/info) + bayangan berwarna |
+| Aksi Cepat | kartu 4×2 ubin (259 px) | **chip rail** satu baris (81 px) — 8 aksi, hook `data-quick` sama |
+| Transaksi Terbaru | kartu putih penuh | kartu ber-tint brand, menyatu dengan ledger | (`card-flush`)
+| Saldo Akun | kartu netral | ubin berwarna per akun + **kaki kartu** "Total saldo aktif" |
+| Hutang & Piutang | dua baris netral | baris ber-tint amber/biru sesuai sisi |
+| Financial Insights | daftar vertikal 505 px | **rail horizontal** dengan tepi memudar |
+| Grafik | grid penuh, area 16% | grid putus-putus, area 20%, titik & garis lebih tegas |
+| Gerak | — | kartu masuk berjenjang (`bentoRise`, 45 ms antar baris), chip terangkat saat hover |
+
+Perbaikan nyata yang ikut ketemu saat audit visual: di ponsel **judul "Arus Kas" pecah jadi kolom vertikal**
+karena flexbox menaruh kontrol rentang (7H…1T) di luar tepi kartu (x=369 px pada kartu selebar 366 px).
+Kepala kartu grafik sekarang grid satu kolom — `.chart-card` khusus beranda.
+
+**Bukti:** `preview/home-redesign.png` + 32 tangkapan layar `preview/shots/desain-*.png` (8 halaman × 2 tema ×
+2 perangkat) · **Verifikasi:** 30 invariant, **196/196** smoke, `audit:layout` hijau, nol error konsol.
+
 ## Perbaikan lanjutan — ledger di dalam popup (Iterasi 6.1)
 
 **Laporan:** "tampilan popup di bagian Transaksi terakhir ini sangat berantakan banget."

@@ -18,8 +18,8 @@ import { groupedBarChart, lineAreaChart, sparkline } from '../components/charts.
 import { attachChartTooltips } from '../components/charts.js';
 import { attachCardTilt } from '../components/cards.js';
 import {
-  accountRail, animateCounters, budgetRow, chartCard, debtPairCard, summaryCard,
-  deltaHtml, heroCard, insightCard, legendItem, quickActions,
+  accountRail, animateCounters, budgetRow, chartCard, debtPairCard, insightCard, quickChipRail,
+  railFoot, summaryCard, deltaHtml, heroCard, legendItem,
 } from '../components/cards.js';
 import { badgeHtml, moneyHtml, onSegment, progressHtml, toast } from '../components/ui.js';
 import {
@@ -194,6 +194,8 @@ export const dashboardPage = {
       || accountsActive.find((a) => a.account.account_type === 'bank')
       || accountsActive[0];
 
+    const totalAktif = accountsActive.reduce((acc, row) => acc + row.balance, 0);
+
     root.innerHTML = `
       <div class="page-enter stack-5">
         <div class="bento">
@@ -212,6 +214,16 @@ export const dashboardPage = {
     hideBalance: hide,
   })}
           ${netWorthCard(state, { masked: hide })}
+        </div>
+
+        <div class="bento">
+          <section class="card col-12 card-pad-sm quick-strip tint-brand">
+            <div class="card-head">
+              <div><h3>Aksi Cepat</h3><div class="card-sub">Catat dalam hitungan detik</div></div>
+              <div class="card-head-actions"><span class="kbd-hint">${icon('switch', { size: 13 })} geser untuk aksi lain</span></div>
+            </div>
+            ${quickChipRail(QUICK_ACTIONS)}
+          </section>
         </div>
 
         <div class="bento">
@@ -246,35 +258,29 @@ export const dashboardPage = {
 
         <div class="bento">
           ${chartCard({
-    cls: 'col-8', title: 'Arus Kas: Pemasukan vs Pengeluaran', sub: chart.sub,
+    cls: 'col-8 chart-card',
+    title: 'Arus Kas: Pemasukan vs Pengeluaran',
+    sub: chart.sub,
     actions: `<div class="segmented segmented-sm" data-segment="cashflow">${RANGE_OPTIONS.map((o) => `<button data-value="${o.value}" aria-selected="${o.value === chartPreset}">${o.label}</button>`).join('')}</div>`,
     body: `<div class="chart-wrap" data-chart-body>${chart.html}</div>`,
     legend: chart.legend,
   })}
-          <div class="col-4 stack-4">
-            <section class="card">
-              <div class="card-head">
-                <div><h3>Aksi Cepat</h3><div class="card-sub">Catat transaksi dalam hitungan detik</div></div>
-              </div>
-              ${quickActions(QUICK_ACTIONS)}
-            </section>
-            <section class="card">
-              <div class="card-head">
-                <div><h3>Kesehatan Budget</h3><div class="card-sub">${budgets.length ? `${budgets.length} budget aktif bulan ini` : 'Belum ada budget'}</div></div>
-                <div class="card-head-actions"><button class="btn btn-sm btn-ghost" data-go="budgets">Kelola</button></div>
-              </div>
-              ${topBudgets.length
+          <section class="card col-4 tint-accent">
+            <div class="card-head">
+              <div><h3>Kesehatan Budget</h3><div class="card-sub">${budgets.length ? `${budgets.length} budget aktif bulan ini` : 'Belum ada budget'}</div></div>
+              <div class="card-head-actions"><button class="btn btn-sm btn-ghost" data-go="budgets">Kelola</button></div>
+            </div>
+            ${topBudgets.length
     ? `<div>${topBudgets.map((row) => budgetRow({ row, format: (v) => (hide ? MASK : money(v)) })).join('')}</div>`
     : `<div class="banner">${icon('target', { size: 18 })}<div class="grow t-xs">Tentukan budget bulanan untuk mengontrol pengeluaran.</div>
        <button class="btn btn-sm btn-soft" data-quick="budget">Buat</button></div>`}
-            </section>
-          </div>
+          </section>
         </div>
 
         <div class="bento">
-          <section class="card card-flush col-12">
+          <section class="card card-flush col-12 tint-brand">
             <div class="card-head" style="padding:var(--s-5) var(--s-5) var(--s-3)">
-              <div><h3>Transaksi Terbaru</h3><div class="card-sub">${summary.monthTotals.count} transaksi bulan ini · 5 terakhir</div></div>
+              <div><h3>Transaksi Terbaru</h3><div class="card-sub">${summary.monthTotals.count} transaksi bulan ini · ${recent.length} terakhir</div></div>
               <div class="card-head-actions"><button class="btn btn-sm btn-outline" data-go="transactions">Lihat semua ${icon('chevron-right', { size: 14 })}</button></div>
             </div>
             <div class="ledger-card" data-recent>
@@ -287,13 +293,12 @@ export const dashboardPage = {
         </div>
 
         <div class="bento">
-          <div class="col-8 stack-4">
-            <section class="card">
-              <div class="card-head">
-                <div><h3>Saldo Akun</h3><div class="card-sub">${accountsActive.length} akun terhubung</div></div>
-                <div class="card-head-actions"><button class="btn btn-sm btn-outline" data-go="accounts">Kelola akun ${icon('chevron-right', { size: 14 })}</button></div>
-              </div>
-              ${accountRail({
+          <section class="card col-7 tint-brand">
+            <div class="card-head">
+              <div><h3>Saldo Akun</h3><div class="card-sub">${accountsActive.length} akun terhubung</div></div>
+              <div class="card-head-actions"><button class="btn btn-sm btn-outline" data-go="accounts">Kelola akun ${icon('chevron-right', { size: 14 })}</button></div>
+            </div>
+            ${accountRail({
     masked: hide,
     accounts: accountsActive.map((row) => ({
       account: row.account,
@@ -301,29 +306,35 @@ export const dashboardPage = {
       meta: row.lastActivity ? `${row.lastActivity.slice(8, 10)}/${row.lastActivity.slice(5, 7)}` : '',
     })),
   })}
-            </section>
-            <section class="card">
-              <div class="card-head">
-                <div><h3>Hutang &amp; Piutang</h3><div class="card-sub">${openDebts.length + openRec.length} catatan aktif · 1 pengingat terdekat</div></div>
-                <div class="card-head-actions"><button class="btn btn-sm btn-ghost" data-go="debts">Detail ${icon('chevron-right', { size: 14 })}</button></div>
-              </div>
-              ${debtPairCard({
+            ${railFoot({
+    label: 'Total saldo aktif',
+    value: hide ? MASK : money(totalAktif),
+    hint: 'Geser kartu ke samping untuk melihat semua akun',
+  })}
+          </section>
+
+          <section class="card col-5 tint-warn">
+            <div class="card-head">
+              <div><h3>Hutang &amp; Piutang</h3><div class="card-sub">${openDebts.length + openRec.length} catatan aktif</div></div>
+              <div class="card-head-actions"><button class="btn btn-sm btn-ghost" data-go="debts">Detail ${icon('chevron-right', { size: 14 })}</button></div>
+            </div>
+            ${debtPairCard({
     debtTotal: summary.worth.debts, recTotal: summary.worth.receivables,
     debtCount: openDebts.length, recCount: openRec.length,
     nearestDebt, nearestRec, masked: hide,
   })}
-            </section>
-          </div>
-          <section class="card col-4">
+          </section>
+        </div>
+
+        <div class="bento">
+          <section class="card col-12 tint-accent">
             <div class="card-head">
-              <div><h3>Financial Insights</h3><div class="card-sub">Berdasarkan data Anda</div></div>
-              ${iconTile('sparkles', { color: 'var(--accent)', size: 32, radius: 10, iconSize: 16 })}
+              <div><h3>Financial Insights</h3><div class="card-sub">Otomatis dari data Anda · ${summary.insights.length} temuan</div></div>
+              <div class="card-head-actions"><button class="btn btn-sm btn-ghost" data-go="analytics">Analitik ${icon('chevron-right', { size: 14 })}</button></div>
             </div>
-            <div class="stack-3" style="max-height:420px;overflow-y:auto;padding-right:2px">
-              ${summary.insights.length
-    ? summary.insights.slice(0, 6).map(insightCard).join('')
-    : '<div class="banner">' + icon('info', { size: 18 }) + '<div class="t-xs grow">Insight akan muncul setelah ada cukup riwayat transaksi (minimal 2 bulan).</div></div>'}
-            </div>
+            ${summary.insights.length
+    ? `<div class="insight-rail" data-insight-rail tabindex="0" role="list" aria-label="Insight keuangan">${summary.insights.slice(0, 6).map((ins) => `<div class="insight-slide" role="listitem">${insightCard(ins)}</div>`).join('')}</div>`
+    : `<div class="banner">${icon('info', { size: 18 })}<div class="t-xs grow">Insight akan muncul setelah ada cukup riwayat transaksi (minimal 2 bulan).</div></div>`}
           </section>
         </div>
       </div>
@@ -382,18 +393,25 @@ export const dashboardPage = {
       on(root, 'click', '[data-account-card]', (event, el) => ctx.navigate('accounts', { id: el.dataset.accountCard })),
     ];
 
-    /* rail saldo akun: tombol panah + status geser */
+    /* rail horizontal: tombol panah (rail akun) + status tepi untuk semua rail */
     const rail = qs('[data-rail]', root);
+    const wrapCls = (el) => {
+      const max = el.scrollWidth - el.clientWidth - 2;
+      const over = el.scrollWidth - el.clientWidth > 4;
+      el.classList.toggle('is-overflow', over);
+      el.classList.toggle('at-start', el.scrollLeft <= 2);
+      el.classList.toggle('at-end', el.scrollLeft >= max);
+      return over;
+    };
     if (rail) {
       const step = () => Math.max(rail.clientWidth * 0.8, 160);
       const wrap = rail.closest('.rail-wrap');
       const sync = () => {
+        const over = wrapCls(rail);
         const max = rail.scrollWidth - rail.clientWidth - 2;
-        const startsAt = rail.scrollLeft <= 2;
-        const endsAt = rail.scrollLeft >= max;
-        wrap?.classList.toggle('has-overflow', rail.scrollWidth - rail.clientWidth > 4);
-        wrap?.classList.toggle('is-start', startsAt);
-        wrap?.classList.toggle('is-end', endsAt);
+        wrap?.classList.toggle('has-overflow', over);
+        wrap?.classList.toggle('is-start', rail.scrollLeft <= 2);
+        wrap?.classList.toggle('is-end', rail.scrollLeft >= max);
       };
       cleanups.push(on(root, 'click', '[data-rail-nav]', (event, el) => {
         event.preventDefault();
@@ -403,6 +421,22 @@ export const dashboardPage = {
       sync();
       requestAnimationFrame(sync);
     }
+    // chip aksi & insight: cukup status tepi (tanpa tombol)
+    [qs('[data-chip-rail]', root), qs('[data-insight-rail]', root)].forEach((el) => {
+      if (!el) return;
+      const sync = () => {
+        const over = wrapCls(el);
+        if (el.dataset.chipRail !== undefined) {
+          const hint = qs('[data-chip-hint]', root);
+          if (hint) hint.hidden = !over;
+        }
+      };
+      cleanups.push(on(el, 'scroll', sync, { passive: true }));
+      sync();
+      requestAnimationFrame(sync);
+      window.addEventListener('resize', sync, { passive: true });
+      cleanups.push(() => window.removeEventListener('resize', sync));
+    });
 
     if (hide) {
       // Jaring pengaman: sisa nominal (ringkasan, sumbu grafik, tooltip) ikut disensor.

@@ -324,6 +324,35 @@ const invariants = [
     hint: 'header hari sticky menimpa baris di dalam kotak bergulir; tanggal harus jadi label baris',
   },
   {
+    label: 'Aksi Cepat beranda memakai rail chip (bukan kartu 8 ubin)',
+    pass: /export function quickChipRail/.test(cardsJs)
+      && /class="chip-rail" data-chip-rail/.test(cardsJs)
+      && /\.chip-rail \{/.test(cssComponents)
+      && (await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8')).includes('quickChipRail(QUICK_ACTIONS)'),
+    hint: 'kartu Aksi Cepat 4x2 memakan tinggi; chip horizontal lebih ringan dan tetap satu hook data-quick',
+  },
+  {
+    label: 'Financial Insights tampil sebagai rail horizontal',
+    pass: /class="insight-rail" data-insight-rail/.test(await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8'))
+      && /\.insight-rail \{/.test(cssComponents)
+      && /\.insight-rail\.is-overflow:not\(\.at-end\)/.test(cssComponents),
+    hint: 'daftar insight vertikal 505 px; rail horizontal memberi tepi memudar sebagai penanda bisa digeser',
+  },
+  {
+    label: 'Kepala kartu grafik tidak terjepit di ponsel (grid satu kolom)',
+    pass: /\.chart-card \.card-head \{ display: grid; grid-template-columns: minmax\(0, 1fr\)/.test(cssApp)
+      && /cls: 'col-8 chart-card'/.test(await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8')),
+    hint: 'flex membuat kontrol rentang keluar tepi kartu sehingga judul grafik pecah jadi kolom vertikal',
+  },
+  {
+    label: 'Bahasa visual 2.4: tint kartu, kanvas ber-aura, stagger masuk',
+    pass: /\.tint-brand \{ --card-tint: var\(--brand-500\); \}/.test(cssComponents)
+      && /radial-gradient\(1200px 560px at 4% -12%/.test(cssComponents)
+      && /@keyframes bentoRise/.test(cssComponents)
+      && /\.sum-value \{ color: var\(--sum-color/.test(cssComponents),
+    hint: 'perubahan tampilan harus terlihat: warna kartu, kanvas, animasi masuk, angka metrik berwarna',
+  },
+  {
     label: 'Home ringkas: empat metrik bulan ini digabung satu kartu (.summary-card)',
     pass: /export function summaryCard/.test(cardsJs)
       && /class="card col-12 summary-card"/.test(cardsJs)
