@@ -142,6 +142,28 @@ Pelajaran: seluruh test DOM (jsdom) buta terhadap tata letak — jsdom tidak pun
 **Bukti:** `preview/perbaikan-iterasi6.png` (sebelum/sesudah 5 permukaan), `preview/shots/{n1..n6,o1,o2}-*.png`.
 **Verifikasi:** invariant `tools/check.mjs` bertambah 6 (total **19**), smoke DOM bertambah 19 (total **175**), `audit:layout` 25/25 bersih, footer sheet diukur di browser (semua tombol utuh, overflow 0 px).
 
+## Perbaikan lanjutan — ledger di dalam popup (Iterasi 6.1)
+
+**Laporan:** "tampilan popup di bagian Transaksi terakhir ini sangat berantakan banget."
+
+**Akar masalah (terukur di Chromium 390px):** kotak ledger tersemat memakai `max-height:240px; overflow-y:auto`.
+Kontennya 17 baris dengan tinggi 84–306 px — hanya ±3 baris yang terlihat utuh, sisanya terpotong di tengah
+kata. Header hari memakai `position:sticky; top:var(--topbar-h)` sehingga di dalam sheet ia menempel
+di tengah kotak dan **menimpa** judul serta nominal baris. Baris masih memakai padding desktop
+(`var(--s-5)`) dan ikon 42 px sehingga meta-nya terpotong ("Invest… · BCA → Reks… · 08…").
+
+| Sebelum | Sesudah |
+|---|---|
+| kotak bergulir 240 px, 17 baris terpotong, header hari menimpa isi | `.ledger-card` tanpa scroll internal — konten 379 px = tampak 379 px, **0 baris terpotong** |
+| baris 84–306 px tidak beraturan, ikon 42 px | baris `is-compact` seragam **55 px**, ikon 34 px, tinggi stabil |
+| metadata panjang terpotong elipsis | daftar rata: **tanggal · kategori/arah · jam** — tidak ada teks terpotong |
+| 25 baris dipaksa masuk kotak kecil | **6 baris** + tombol **"Lihat semua 89 transaksi"** (langsung ke rekening koran akun) |
+
+Mode `compact` pada `ledgerHtml()` juga dipakai popup Hutang/Piutang ("Transaksi terkait", 5 baris) dan
+hasil Pencarian Global (`.ledger-card-flat`), jadi seluruh ledger tersemat kini konsisten.
+
+**Bukti:** `preview/perbaikan-ledger-popup.png` · **Verifikasi:** +3 invariant (total 22), +5 pemeriksaan smoke (total 180).
+
 ## Prinsip untuk perubahan berikutnya
 
 1. Jangan rusak invarian akuntansi (`docs/ACCOUNTING.md`).
