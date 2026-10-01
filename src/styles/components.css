@@ -468,6 +468,8 @@
   overflow: hidden; background: var(--surface);
 }
 .ledger-card-flat { border: 0; border-radius: 0; }
+/* Di dalam kartu tanpa padding (card-flush) ledger menyatu dengan kartunya. */
+.card-flush > .ledger-card { border-left: 0; border-right: 0; border-bottom: 0; border-radius: 0; }
 
 /* Versi ringkas: header hari statis (tidak lagi lengket & menimpa baris),
    tinggi baris ±48 px, nominal tetap sebaris di kanan. */
@@ -1061,3 +1063,57 @@
 /* Tables that live inside a card supply their own frame — just inset the cells. */
 .table-wrap.is-plain { border: 0; border-radius: 0; padding: 0 var(--s-3); }
 @media (max-width: 860px) { .table-wrap.is-plain { padding: 0; } }
+
+/* ------------------- Ringkasan bulanan (Home, ringkas) -------------------- */
+.summary-card { padding: var(--s-4) var(--s-5) var(--s-4); }
+.summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-4); }
+.sum-tile { display: grid; gap: 4px; align-content: start; min-width: 0; padding: var(--s-3) 0 0; border-top: 2px solid color-mix(in srgb, var(--sum-color) 34%, transparent); }
+.sum-head { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.sum-label { font-size: var(--fs-2xs); font-weight: 660; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.04em; }
+.sum-value { font-size: clamp(15px, 1.45vw, 21px); font-weight: 740; letter-spacing: -0.03em; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sum-tile .metric-delta { font-size: var(--fs-2xs); }
+.sum-sub { font-size: var(--fs-2xs); color: var(--text-3); }
+
+/* -------------------- Rail saldo akun (geser kiri/kanan) ------------------ */
+.rail-wrap { position: relative; }
+.rail-wrap.has-overflow::after,
+.rail-wrap.has-overflow.is-start::before {
+  content: ''; position: absolute; top: 0; bottom: 8px; width: 42px; pointer-events: none;
+  opacity: 0; transition: opacity var(--t) var(--ease); border-radius: var(--r-md);
+}
+.rail-wrap.has-overflow::after { right: 0; background: linear-gradient(90deg, transparent, var(--surface)); }
+.rail-wrap.has-overflow.is-start::before { left: 0; background: linear-gradient(270deg, transparent, var(--surface)); }
+.rail-wrap.has-overflow:not(.is-end)::after { opacity: 1; }
+.rail-wrap.has-overflow:not(.is-start)::before { opacity: 1; }
+.rail { scrollbar-width: none; -ms-overflow-style: none; }
+.rail::-webkit-scrollbar { width: 0; height: 0; }
+.rail:focus-visible { outline: 2px solid var(--brand-500); outline-offset: 3px; }
+.rail-nav { display: none; }
+.rail-btn {
+  display: grid; place-items: center; width: 30px; height: 30px; padding: 0;
+  border: 1px solid var(--line); border-radius: 50%; background: var(--surface-3); color: var(--text-2);
+  cursor: pointer; box-shadow: var(--sh-sm); transition: transform var(--t) var(--ease), color var(--t);
+}
+.rail-btn:hover { color: var(--text); transform: scale(1.06); }
+.account-card.is-mini {
+  display: grid; gap: 3px; padding: var(--s-3) var(--s-3); align-content: start;
+  background: var(--surface-2);
+}
+.account-card.is-mini .account-balance { font-size: clamp(15px, 1.4vw, 17px); }
+.account-card.is-mini .am-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.account-card.is-mini .am-name { font-size: var(--fs-xs); font-weight: 650; }
+.account-card.is-mini .am-meta { font-size: var(--fs-2xs); color: var(--text-3); }
+.account-rail > .account-card.is-mini { flex: 0 0 auto; }
+
+/* --------------------- Hutang & Piutang dalam satu kartu ------------------ */
+.pair-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-3); }
+.pair-row {
+  display: flex; align-items: center; gap: var(--s-3); min-width: 0;
+  padding: var(--s-3); border: 1px solid var(--line); border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.pair-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pair-label { font-size: var(--fs-xs); font-weight: 660; color: var(--text-2); }
+.pair-value { font-size: var(--fs-h3); font-weight: 720; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.pair-sub { font-size: var(--fs-2xs); color: var(--text-3); margin-top: 2px; }
+.pair-row .btn { flex: none; }

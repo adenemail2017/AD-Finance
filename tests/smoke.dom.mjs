@@ -181,6 +181,40 @@ check('net worth card rendered', text().includes('Kekayaan Bersih'));
 check('cash flow chart rendered', Boolean($('.bento .chart-svg')));
 check('account cards on dashboard', $$('.account-card').length === 10, `${$$('.account-card').length}`);
 check('recent transactions listed', $$('[data-recent] .txn').length > 0, `${$$('[data-recent] .txn').length}`);
+
+section('Beranda ringkas (rail akun, ringkasan bulanan, hutang-piutang)');
+check('empat metrik bulan ini jadi satu kartu 2x2 di ponsel',
+  $$('#view .summary-card .sum-tile').length === 4 && $$('#view .summary-card .sum-value').length === 4,
+  `${$$('#view .summary-card .sum-tile').length} tile`);
+check('kartu metrik col-3 lama tidak lagi dipakai di beranda',
+  $$('#view .bento > .card.col-3').length === 0, `${$$('#view .bento > .card.col-3').length}`);
+check('saldo akun tampil sebagai rail yang bisa digeser',
+  (() => {
+    const rail = $('#view [data-rail]');
+    return Boolean(rail) && rail.querySelectorAll('[data-account-rail]').length === 10;
+  })(), `${$$('#view [data-account-rail]').length} kartu akun`);
+check('rail punya tombol geser kiri & kanan', $$('#view [data-rail-nav]').length === 2);
+check('tombol geser memindahkan rail (geser horizontal)',
+  (() => {
+    const rail = $('#view [data-rail]');
+    let moved = 0;
+    rail.scrollBy = (opts) => { moved = opts?.left || 0; };
+    click($('#view [data-rail-nav="1"]'));
+    return moved > 0;
+  })());
+check('kartu akun di rail tetap bisa dibuka (data-account-card)',
+  $$('#view [data-rail] [data-account-card]').length === 10);
+check('hutang & piutang berbagi satu kartu ringkas',
+  $$('#view .pair-row').length === 2 && $$('#view .pair-stack').length === 1,
+  `${$$('#view .pair-row').length} baris`);
+check('aksi cepat bayar hutang & terima piutang tersedia di kartu itu',
+  Boolean($('#view .pair-row [data-pay-debt]')) && Boolean($('#view .pair-row [data-receive]')));
+check('transaksi terbaru memakai ledger ringkas tanpa header hari',
+  $$('#view [data-recent] .txn.is-compact').length === 5
+  && $$('#view [data-recent] .ledger-day-head').length === 0,
+  `${$$('#view [data-recent] .txn').length} baris`);
+check('shortcut ke halaman hutang/piutang tetap ada (data-go=debts)',
+  Boolean($('#view [data-go="debts"]')));
 check('financial insights generated', $$('.insight').length >= 3, `${$$('.insight').length}`);
 check('budget health widget', text().includes('Kesehatan Budget'));
 

@@ -470,3 +470,29 @@
   display: flex; align-items: center; gap: var(--s-2);
   font-size: var(--fs-2xs); color: var(--text-3); padding: 0 var(--s-6) var(--s-3);
 }
+
+/* ---------- Home ringkas: grid ringkasan 2×2 & rail akun di ponsel -------- */
+@media (max-width: 1180px) {
+  .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-3) var(--s-4); }
+}
+@media (min-width: 761px) {
+  .rail-wrap.has-overflow .rail-nav {
+    display: flex; gap: 6px; position: absolute; top: 50%; right: 0;
+    transform: translateY(-50%); opacity: 0; transition: opacity var(--t) var(--ease);
+  }
+  .rail-wrap.has-overflow:hover .rail-nav,
+  .rail-wrap.has-overflow:focus-within .rail-nav { opacity: 1; }
+}
+@media (max-width: 760px) {
+  .summary-card { padding: var(--s-4); }
+  .summary-grid { gap: var(--s-3) var(--s-3); }
+  .sum-tile { padding-top: 9px; }
+  .summary-grid .sum-head .icon-tile { display: none; }
+  .rail-wrap.has-overflow::after,
+  .rail-wrap.has-overflow.is-start::before { bottom: 4px; width: 30px; }
+  .pair-row { padding: 10px var(--s-3); gap: 10px; }
+  .pair-row .icon-tile { width: 30px; height: 30px; }
+}
+@media (max-width: 420px) {
+  .pair-cta-text { display: none; }
+}

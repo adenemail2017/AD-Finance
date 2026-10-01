@@ -14,13 +14,15 @@ const toneClass = (tone) => (tone === 'pos' || tone === 'positive' ? 't-pos'
   : tone === 'neg' || tone === 'negative' ? 't-neg'
     : tone === 'warn' || tone === 'warning' ? 't-warn' : '');
 
-export function deltaHtml(value, { suffix = 'vs periode lalu', invert = false } = {}) {
+export function deltaHtml(value, { suffix = 'vs periode lalu', invert = false, unit = 'percent' } = {}) {
   const n = Number(value) || 0;
   const flat = Math.abs(n) < 0.05;
   const good = invert ? n < 0 : n > 0;
   const cls = flat ? 'delta-flat' : good ? 'delta-pos' : 'delta-neg';
   const iconName = flat ? 'minus' : n > 0 ? 'arrow-up-right' : 'arrow-down-left';
-  return `<span class="metric-delta ${cls}">${icon(iconName, { size: 13 })}${flat ? 'stabil' : percent(n, 1, true)}
+  // `unit: 'poin'` untuk besaran yang memang bukan persentase (mis. Savings Rate)
+  const shown = unit === 'point' ? `${n > 0 ? '+' : ''}${n.toFixed(1)}` : percent(n, 1, true);
+  return `<span class="metric-delta ${cls}">${icon(iconName, { size: 13 })}${flat ? 'stabil' : shown}
     ${suffix ? `<span class="t-dim" style="font-weight:520">${esc(suffix)}</span>` : ''}</span>`;
 }
 
@@ -145,6 +147,139 @@ export function receivableCard({ receivable, info, onClick }) {
       ${receivable.reminder_days ? `<button class="btn btn-sm btn-ghost" data-remind="${esc(receivable.id)}">${icon('message-square', { size: 15 })} Pengingat</button>` : ''}
     </div>
   </article>`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Ringkasan bulanan ringkas (Home)                                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Empat metrik bulan ini dalam SATU kartu: 2×2 di ponsel, 4 kolom di desktop.
+ * @param {{items: Array<{label,value,iconName,color,delta?,deltaOpts?,sub?,format?,decimals?}>, masked?: boolean, title?: string, sub?: string}} cfg
+ */
+export function summaryCard({ items = [], masked = false, title = 'Ringkasan Bulan Ini', sub = '' }) {
+  return `<section class="card col-12 summary-card">
+    <div class="card-head">
+      <div><h3>${esc(title)}</h3>${sub ? `<div class="card-sub">${esc(sub)}</div>` : ''}</div>
+    </div>
+    <div class="summary-grid">
+      ${items.map((it) => {
+    const isMoney = it.format !== 'percent';
+    return `<div class="sum-tile" style="--sum-color:${it.color || 'var(--brand-500)'}">
+        <div class="sum-head">
+          ${iconTile(it.iconName, { color: it.color || 'var(--brand-500)', size: 24, radius: 8, iconSize: 13 })}
+          <span class="sum-label">${esc(it.label)}</span>
+        </div>
+        ${masked && isMoney
+      ? `<div class="sum-value metric-value is-masked">${MASK}</div>`
+      : `<div class="sum-value metric-value${it.negative ? ' t-neg' : ''}" data-count="${isMoney ? (Number(it.value) || 0) : Math.round(Number(it.value) || 0)}"
+             ${isMoney ? '' : `data-format="percent" data-decimals="${it.decimals ?? 1}"`}>${isMoney ? esc(money(Number(it.value) || 0)) : percent(Number(it.value) || 0, it.decimals ?? 1)}</div>`}
+        ${it.delta !== null && it.delta !== undefined ? deltaHtml(it.delta, it.deltaOpts || {}) : ''}
+        ${it.sub ? `<div class="sum-sub">${esc(it.sub)}</div>` : ''}
+      </div>`;
+  }).join('')}
+    </div>
+  </section>`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Rail saldo akun (geser kiri/kanan)                                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Daftar akun sebagai rail horizontal: hemat tinggi, bisa digeser/swipe.
+ * @param {{accounts: Array, masked?: boolean, cols?: number}} cfg
+ */
+export function accountRail({ accounts = [], masked = false, cols = 3 }) {
+  if (!accounts.length) return `<div class="empty-state" style="padding:var(--s-6) var(--s-4)">
+    ${iconTile('wallet', { size: 46, radius: 15, iconSize: 22 })}
+    <h3>Belum ada akun</h3><p>Tambahkan rekening, e-wallet, atau uang tunai untuk mulai mencatat.</p>
+  </div>`;
+  return `<div class="rail-wrap">
+    <div class="rail account-rail" data-rail tabindex="0" role="list" aria-label="Saldo akun — geser untuk melihat akun lain">
+      ${accounts.map((row) => accountMiniCard({ account: row.account, balance: row.balance, meta: row.meta, masked })).join('')}
+    </div>
+    <div class="rail-nav" aria-hidden="true">
+      <button class="rail-btn" type="button" data-rail-nav="-1" aria-label="Geser ke kiri">${icon('chevron-left', { size: 16 })}</button>
+      <button class="rail-btn" type="button" data-rail-nav="1" aria-label="Geser ke kanan">${icon('chevron-right', { size: 16 })}</button>
+    </div>
+  </div>`;
+}
+
+/** Kartu akun versi ringkas untuk rail (tetap memakai kelas .account-card agar konsisten). */
+export function accountMiniCard({ account, balance = 0, meta = '', masked = false }) {
+  const typeLabel = { bank: 'Bank', ewallet: 'E-Wallet', cash: 'Cash', investment: 'Investasi', emergency_fund: 'Dana Darurat' }[account.account_type] || 'Akun';
+  const number = account.account_number ? maskAccountNumber(account.account_number) : '';
+  return `<button class="account-card is-mini" style="--account-color:${esc(account.color)}" data-account-card="${esc(account.id)}" data-account-rail type="button" role="listitem">
+    <span class="am-top">
+      ${iconTile(account.icon, { color: account.color, size: 32, radius: 10, iconSize: 16 })}
+      <span class="am-name t-clip">${esc(account.name)}</span>
+    </span>
+    <span class="account-balance ${balance < 0 ? 't-neg' : ''}">${esc(masked ? MASK : money(balance))}</span>
+    <span class="am-meta t-clip">${esc(number || [typeLabel, meta].filter(Boolean).join(' · '))}</span>
+  </button>`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Hutang & Piutang dalam satu kartu                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Dua baris ringkas: total + jatuh tempo terdekat + satu aksi per baris.
+ * @param {{debts, receivables, nearestDebt, nearestRec, masked?, onMask?}} cfg
+ */
+export function debtPairCard({
+  debtTotal = 0, recTotal = 0, debtCount = 0, recCount = 0,
+  nearestDebt = null, nearestRec = null, masked = false,
+}) {
+  const fmt = (v) => (masked ? MASK : money(v));
+  const rows = [
+    {
+      key: 'debt',
+      label: 'Hutang',
+      tone: 'neg',
+      icon: 'hand-coins',
+      color: 'var(--warn)',
+      total: debtTotal,
+      count: debtCount,
+      nearest: nearestDebt,
+      cta: nearestDebt ? `<button class="btn btn-sm btn-primary" data-pay-debt="${esc(nearestDebt.debt.id)}">${icon('hand-coins', { size: 14 })}<span class="pair-cta-text"> Bayar</span></button>` : '',
+    },
+    {
+      key: 'rec',
+      label: 'Piutang',
+      tone: 'brand',
+      icon: 'file-text',
+      color: 'var(--brand-500)',
+      total: recTotal,
+      count: recCount,
+      nearest: nearestRec,
+      cta: nearestRec ? `<button class="btn btn-sm btn-success" data-receive="${esc(nearestRec.receivable.id)}">${icon('circle-check', { size: 14 })}<span class="pair-cta-text"> Terima</span></button>` : '',
+    },
+  ];
+  return `<div class="pair-stack">
+    ${rows.map((r) => {
+    const item = r.nearest;
+    const party = item ? (item.debt?.counterparty || item.receivable?.counterparty || '') : '';
+    const due = item ? (item.debt?.due_date || item.receivable?.due_date || '') : '';
+    const overdue = Boolean(item?.info?.isOverdue);
+    const remaining = item ? (item.info?.remaining ?? 0) : 0;
+    return `<div class="pair-row" data-pair="${r.key}">
+      ${iconTile(r.icon, { color: r.color, size: 34, radius: 11, iconSize: 17 })}
+      <div class="grow" style="min-width:0">
+        <div class="pair-head">
+          <span class="pair-label">${r.label}</span>
+          ${r.count ? badgeHtml(`${r.count} aktif`, r.key === 'debt' ? 'warn' : 'info') : badgeHtml('Nihil', 'pos', { icon: 'circle-check' })}
+        </div>
+        <div class="pair-value t-${r.tone}">${esc(fmt(r.total))}</div>
+        ${item
+      ? `<div class="pair-sub t-clip" title="${esc(`${party} · sisa ${fmt(remaining)}`)}">${esc(party)} · ${overdue ? '<b class="t-neg">Terlambat</b>' : `${overdue ? '' : 'jatuh tempo '}${esc(due)}`}</div>`
+      : `<div class="pair-sub t-dim">Tidak ada ${r.label.toLowerCase()} aktif</div>`}
+      </div>
+      ${r.cta}
+    </div>`;
+  }).join('')}
+  </div>`;
 }
 
 export function budgetRow({ row, format = money }) {

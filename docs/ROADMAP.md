@@ -142,6 +142,29 @@ Pelajaran: seluruh test DOM (jsdom) buta terhadap tata letak — jsdom tidak pun
 **Bukti:** `preview/perbaikan-iterasi6.png` (sebelum/sesudah 5 permukaan), `preview/shots/{n1..n6,o1,o2}-*.png`.
 **Verifikasi:** invariant `tools/check.mjs` bertambah 6 (total **19**), smoke DOM bertambah 19 (total **175**), `audit:layout` 25/25 bersih, footer sheet diukur di browser (semua tombol utuh, overflow 0 px).
 
+## Iterasi 7 — merapatkan Beranda (rail akun, metrik gabungan, hutang-piutang)
+
+**Laporan:** "Bagian saldo akun di Home terlalu kepanjangan ke bawah, mungkin bisa pakai slider kiri/kanan
+atau ada cara yang lebih bagus. Lalu 'Hutang dan Piutang' di Home makan tempat, dan empat kartu
+Pemasukan/Pengeluaran/Net Cash Flow/Savings Rate juga makan tempat."
+
+**Terukur di ponsel 390×844 (Chromium, seed 10 akun):**
+
+| Bagian | Sebelum | Sesudah | Cara |
+|---|---|---|---|
+| Saldo Akun | **1480 px** (grid 10 kartu) | **107 px** | `.account-rail` — rail geser-snap, 1 baris, kartu 180 px + tombol panah & gradien tepi |
+| Hutang + Piutang | **754 px** (2 kartu) | **193 px** | `.pair-stack` — dua baris ringkas berisi total, jatuh tempo terdekat, aksi Bayar/Terima |
+| 4 kartu metrik | **795 px** bento | **197 px** (1 kartu) | `.summary-card` — satu kartu 4 tile (2×2 ponsel, 4 kolom desktop) |
+| Transaksi Terbaru | 748 px | **264 px** | ledger `compact` + `limit:5` (tanpa header hari), `.card-flush > .ledger-card` menyatu |
+| **Total tinggi beranda** | **6148 px** | **3848 px** (−37 %) | — |
+
+Di desktop 1440×900 beranda turun dari 3063 px → 2586 px. Data yang hilang dari layar tidak dihapus:
+kartu akun tetap membuka popup akun, "Detail" mengarah ke halaman Hutang & Piutang, dan "Lihat semua"
+ke daftar transaksi.
+
+**Bukti:** `preview/beranda-ringkas.png` · **Verifikasi:** +4 invariant (total 26), +10 pemeriksaan smoke
+(total 190), 11 pemeriksaan interaksi Chromium (`qa/interaksi8.mjs`), `audit:layout` hijau di 5 viewport.
+
 ## Perbaikan lanjutan — ledger di dalam popup (Iterasi 6.1)
 
 **Laporan:** "tampilan popup di bagian Transaksi terakhir ini sangat berantakan banget."

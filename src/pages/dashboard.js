@@ -18,8 +18,8 @@ import { groupedBarChart, lineAreaChart, sparkline } from '../components/charts.
 import { attachChartTooltips } from '../components/charts.js';
 import { attachCardTilt } from '../components/cards.js';
 import {
-  accountCard, animateCounters, budgetRow, chartCard, deltaHtml, heroCard, insightCard,
-  legendItem, metricCard, quickActions,
+  accountRail, animateCounters, budgetRow, chartCard, debtPairCard, summaryCard,
+  deltaHtml, heroCard, insightCard, legendItem, quickActions,
 } from '../components/cards.js';
 import { badgeHtml, moneyHtml, onSegment, progressHtml, toast } from '../components/ui.js';
 import {
@@ -37,6 +37,8 @@ const QUICK_ACTIONS = [
   { key: 'budget', label: 'Budget', icon: 'target', color: '#0ea5e9' },
   { key: 'report', label: 'Laporan', icon: 'file-chart', color: '#475569' },
 ];
+
+const HOME_RECENT_LIMIT = 5;
 
 const RANGE_OPTIONS = [
   { value: '7d', label: '7H' },
@@ -178,7 +180,15 @@ export const dashboardPage = {
     const openRec = summary.receivables;
     const nearestDebt = openDebts[0];
     const nearestRec = openRec[0];
-    const recent = sortTransactions(txns(state), 'desc').slice(0, 6);
+    // satu kalimat saja untuk sub-judul ringkasan bulan ini
+    const deltaSummaryText = summary.netDelta === null || summary.netDelta === undefined
+      ? 'belum ada pembanding bulan lalu'
+      : summary.monthTotals.net >= 0
+        ? (Math.abs(summary.netDelta) >= 999
+          ? 'arus kas melonjak vs bulan lalu'
+          : `net naik ${percent(Math.abs(summary.netDelta), 0)} vs bulan lalu`)
+        : 'arus kas minus bulan ini';
+    const recent = sortTransactions(txns(state), 'desc').slice(0, HOME_RECENT_LIMIT);
     // the ATM card mirrors the user's primary bank account (number stays masked)
     const primaryAccount = accountsActive.find((a) => a.account.is_default && a.account.account_type === 'bank')
       || accountsActive.find((a) => a.account.account_type === 'bank')
@@ -205,33 +215,33 @@ export const dashboardPage = {
         </div>
 
         <div class="bento">
-          ${metricCard({
-    cls: 'col-3', label: 'Pemasukan Bulan Ini', value: summary.monthTotals.income,
-    iconName: 'trending-up', color: 'var(--pos)', delta: summary.incomeDelta,
-    sub: `${summary.monthTotals.count} transaksi tercatat`,
+          ${summaryCard({
     masked: hide,
+    sub: `${summary.monthTotals.count} transaksi tercatat bulan ini · ${deltaSummaryText}`,
+    items: [
+      {
+        label: 'Pemasukan', value: summary.monthTotals.income, iconName: 'trending-up', color: 'var(--pos)',
+        delta: summary.incomeDelta, deltaOpts: { suffix: 'vs bulan lalu' },
+      },
+      {
+        label: 'Pengeluaran', value: summary.monthTotals.expense, iconName: 'trending-down', color: 'var(--neg)',
+        delta: summary.expenseDelta, deltaOpts: { invert: true, suffix: 'vs bulan lalu' },
+      },
+      {
+        label: 'Net Cash Flow', value: summary.monthTotals.net, iconName: 'switch', color: 'var(--brand-500)',
+        delta: summary.netDelta, negative: summary.monthTotals.net < 0,
+        deltaOpts: { suffix: 'vs bulan lalu' },
+        sub: summary.monthTotals.net >= 0 ? 'Surplus' : 'Defisit',
+      },
+      {
+        label: 'Savings Rate', value: summary.monthTotals.savingsRate, iconName: 'target', color: 'var(--accent)',
+        format: 'percent', decimals: 1,
+        delta: summary.monthTotals.savingsRate - summary.savingsPrev,
+        deltaOpts: { suffix: 'poin', unit: 'point' },
+        sub: `Dana darurat ${money(summary.assets[ACCOUNT_TYPES.EMERGENCY_FUND] || 0, { compact: true })}`,
+      },
+    ],
   })}
-          ${metricCard({
-    cls: 'col-3', label: 'Pengeluaran Bulan Ini', value: summary.monthTotals.expense,
-    iconName: 'trending-down', color: 'var(--neg)', delta: summary.expenseDelta,
-    deltaOpts: { invert: true, suffix: 'vs bulan lalu' },
-    masked: hide,
-  })}
-          ${metricCard({
-    cls: 'col-3', label: 'Net Cash Flow', value: summary.monthTotals.net,
-    iconName: 'switch', color: 'var(--brand-500)', delta: summary.netDelta,
-    sub: summary.monthTotals.net >= 0 ? 'Surplus — arus kas positif' : 'Defisit — pengeluaran melebihi pemasukan',
-    masked: hide,
-  })}
-          <section class="card col-3">
-            <div class="metric">
-              <div class="metric-label">${iconTile('target', { color: 'var(--accent)', size: 28, radius: 9, iconSize: 15 })}<span>Savings Rate</span></div>
-              <div class="metric-value" data-count="${Math.round(summary.monthTotals.savingsRate)}" data-format="percent" data-decimals="1">${percent(summary.monthTotals.savingsRate, 1)}</div>
-              ${deltaHtml(summary.monthTotals.savingsRate - summary.savingsPrev, { suffix: 'poin vs bulan lalu' })}
-              <div class="metric-sub">Dana darurat ${esc(m(summary.assets[ACCOUNT_TYPES.EMERGENCY_FUND] || 0, { compact: true }))} · investasi ${esc(m(summary.assets[ACCOUNT_TYPES.INVESTMENT] || 0, { compact: true }))}</div>
-            </div>
-            ${progressHtml(Math.max(0, Math.min(100, summary.monthTotals.savingsRate)), { tone: summary.monthTotals.savingsRate >= 20 ? 'pos' : 'warn' })}
-          </section>
         </div>
 
         <div class="bento">
@@ -264,11 +274,11 @@ export const dashboardPage = {
         <div class="bento">
           <section class="card card-flush col-8">
             <div class="card-head" style="padding:var(--s-5) var(--s-5) var(--s-3)">
-              <div><h3>Transaksi Terbaru</h3><div class="card-sub">${recent.length} dari ${summary.monthTotals.count} transaksi bulan ini</div></div>
+              <div><h3>Transaksi Terbaru</h3><div class="card-sub">${summary.monthTotals.count} transaksi bulan ini · 5 terakhir</div></div>
               <div class="card-head-actions"><button class="btn btn-sm btn-outline" data-go="transactions">Lihat semua ${icon('chevron-right', { size: 14 })}</button></div>
             </div>
-            <div class="ledger" data-recent>
-              ${recent.length ? ledgerHtml(recent, { state, masked: hide }) : `<div class="empty-state" style="padding:var(--s-7) var(--s-5)">
+            <div class="ledger-card" data-recent>
+              ${recent.length ? ledgerHtml(recent, { state, masked: hide, compact: true, limit: HOME_RECENT_LIMIT }) : `<div class="empty-state" style="padding:var(--s-7) var(--s-5)">
                 ${iconTile('inbox', { size: 54, radius: 18, iconSize: 26 })}
                 <h3>Belum ada transaksi</h3><p>Mulai catat pemasukan atau pengeluaran pertama Anda.</p>
                 <button class="btn btn-primary" data-quick="expense">${icon('plus', { size: 18 })} Tambah Transaksi</button></div>`}
@@ -278,33 +288,14 @@ export const dashboardPage = {
           <div class="col-4 stack-4">
             <section class="card">
               <div class="card-head">
-                <div><h3>Hutang</h3><div class="card-sub">${openDebts.length} aktif</div></div>
-                <div class="card-head-actions"><button class="btn btn-sm btn-ghost" data-go="debts">Detail</button></div>
+                <div><h3>Hutang &amp; Piutang</h3><div class="card-sub">${openDebts.length + openRec.length} catatan aktif · 1 pengingat terdekat</div></div>
+                <div class="card-head-actions"><button class="btn btn-sm btn-ghost" data-go="debts">Detail ${icon('chevron-right', { size: 14 })}</button></div>
               </div>
-              <div class="metric-value t-neg${hide ? ' is-masked' : ''}">${hide ? MASK : esc(money(summary.worth.debts))}</div>
-              ${nearestDebt ? `<div class="stack-2 mt-3">
-                  <div class="row t-xs"><span class="t-dim grow">Jatuh tempo terdekat</span>
-                    <span class="t-bold">${esc(nearestDebt.debt.counterparty)}</span></div>
-                  <div class="row t-xs"><span class="t-dim grow">Sisa</span><span class="t-num">${esc(m(nearestDebt.info.remaining))}</span></div>
-                  <div class="row t-xs"><span class="t-dim grow">Tenggat</span>
-                    ${badgeHtml(nearestDebt.info.isOverdue ? 'Terlambat' : (nearestDebt.debt.due_date || '-'), nearestDebt.info.isOverdue ? 'neg' : 'warn')}</div>
-                  <button class="btn btn-sm btn-primary btn-block mt-2" data-pay-debt="${esc(nearestDebt.debt.id)}">${icon('hand-coins', { size: 15 })} Bayar sekarang</button>
-                </div>` : badgeHtml('Tidak ada hutang aktif', 'pos', { icon: 'circle-check' })}
-            </section>
-
-            <section class="card">
-              <div class="card-head">
-                <div><h3>Piutang</h3><div class="card-sub">${openRec.length} aktif</div></div>
-                <div class="card-head-actions"><button class="btn btn-sm btn-ghost" data-go="debts">Detail</button></div>
-              </div>
-              <div class="metric-value t-brand${hide ? ' is-masked' : ''}">${hide ? MASK : esc(money(summary.worth.receivables))}</div>
-              ${nearestRec ? `<div class="stack-2 mt-3">
-                  <div class="row t-xs"><span class="t-dim grow">Jatuh tempo terdekat</span><span class="t-bold">${esc(nearestRec.receivable.counterparty)}</span></div>
-                  <div class="row t-xs"><span class="t-dim grow">Sisa</span><span class="t-num">${esc(m(nearestRec.info.remaining))}</span></div>
-                  <div class="row t-xs"><span class="t-dim grow">Tenggat</span>
-                    ${badgeHtml(nearestRec.info.isOverdue ? 'Terlambat' : (nearestRec.receivable.due_date || '-'), nearestRec.info.isOverdue ? 'neg' : 'info')}</div>
-                  <button class="btn btn-sm btn-success btn-block mt-2" data-receive="${esc(nearestRec.receivable.id)}">${icon('circle-check', { size: 15 })} Catat penerimaan</button>
-                </div>` : badgeHtml('Tidak ada piutang aktif', 'pos', { icon: 'circle-check' })}
+              ${debtPairCard({
+    debtTotal: summary.worth.debts, recTotal: summary.worth.receivables,
+    debtCount: openDebts.length, recCount: openRec.length,
+    nearestDebt, nearestRec, masked: hide,
+  })}
             </section>
           </div>
         </div>
@@ -315,15 +306,15 @@ export const dashboardPage = {
               <div><h3>Saldo Akun</h3><div class="card-sub">${accountsActive.length} akun terhubung</div></div>
               <div class="card-head-actions"><button class="btn btn-sm btn-outline" data-go="accounts">Kelola akun ${icon('chevron-right', { size: 14 })}</button></div>
             </div>
-            <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:var(--s-3)">
-              ${accountsActive.map((row) => accountCard({ masked: hide,
-    account: row.account,
-    balance: row.balance,
-    meta: row.lastActivity ? `Terakhir ${row.lastActivity.slice(8, 10)}/${row.lastActivity.slice(5, 7)}` : '',
-  })).join('')}
-            </div>
+            ${accountRail({
+    masked: hide,
+    accounts: accountsActive.map((row) => ({
+      account: row.account,
+      balance: row.balance,
+      meta: row.lastActivity ? `${row.lastActivity.slice(8, 10)}/${row.lastActivity.slice(5, 7)}` : '',
+    })),
+  })}
           </section>
-
           <section class="card col-4">
             <div class="card-head">
               <div><h3>Financial Insights</h3><div class="card-sub">Berdasarkan data Anda</div></div>
@@ -391,6 +382,28 @@ export const dashboardPage = {
       on(root, 'click', '[data-go]', (event, el) => ctx.navigate(el.dataset.go)),
       on(root, 'click', '[data-account-card]', (event, el) => ctx.navigate('accounts', { id: el.dataset.accountCard })),
     ];
+
+    /* rail saldo akun: tombol panah + status geser */
+    const rail = qs('[data-rail]', root);
+    if (rail) {
+      const step = () => Math.max(rail.clientWidth * 0.8, 160);
+      const wrap = rail.closest('.rail-wrap');
+      const sync = () => {
+        const max = rail.scrollWidth - rail.clientWidth - 2;
+        const startsAt = rail.scrollLeft <= 2;
+        const endsAt = rail.scrollLeft >= max;
+        wrap?.classList.toggle('has-overflow', rail.scrollWidth - rail.clientWidth > 4);
+        wrap?.classList.toggle('is-start', startsAt);
+        wrap?.classList.toggle('is-end', endsAt);
+      };
+      cleanups.push(on(root, 'click', '[data-rail-nav]', (event, el) => {
+        event.preventDefault();
+        rail.scrollBy({ left: Number(el.dataset.railNav) * step(), behavior: 'smooth' });
+      }));
+      cleanups.push(on(rail, 'scroll', sync, { passive: true }));
+      sync();
+      requestAnimationFrame(sync);
+    }
 
     if (hide) {
       // Jaring pengaman: sisa nominal (ringkasan, sumbu grafik, tooltip) ikut disensor.

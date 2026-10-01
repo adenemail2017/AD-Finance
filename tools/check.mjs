@@ -184,6 +184,7 @@ ok(`layers — ${Object.entries(buckets).filter(([, v]) => v).map(([k, v]) => `$
 /* ------------------------------------------ 7. layout invariants ---- */
 console.log('\n\u001b[1mLayout invariants (desktop & mobile)\u001b[0m');
 const cssComponents = await readFile(join(ROOT, 'src/styles/components.css'), 'utf8');
+const cardsJs = await readFile(join(ROOT, 'src/components/cards.js'), 'utf8');
 const cssApp = await readFile(join(ROOT, 'src/styles/app.css'), 'utf8');
 const cssDesign = await readFile(join(ROOT, 'src/styles/design-system.css'), 'utf8');
 const ruleBody = (css, selector, { from = 0 } = {}) => {
@@ -321,6 +322,39 @@ const invariants = [
       && /\.txn\.is-compact \.txn-date/.test(cssComponents)
       && /position: static/.test(cssComponents.slice(cssComponents.indexOf('.ledger-day.is-compact'))),
     hint: 'header hari sticky menimpa baris di dalam kotak bergulir; tanggal harus jadi label baris',
+  },
+  {
+    label: 'Home ringkas: empat metrik bulan ini digabung satu kartu (.summary-card)',
+    pass: /export function summaryCard/.test(cardsJs)
+      && /class="card col-12 summary-card"/.test(cardsJs)
+      && (await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8')).includes('summaryCard({')
+      && /\.summary-grid \{ display: grid; grid-template-columns: repeat\(4/.test(cssComponents)
+      && /\.summary-grid \{ grid-template-columns: repeat\(2/.test(cssApp),
+    hint: 'empat kartu col-3 memakan tinggi beranda → satukan jadi satu kartu 2×2 di ponsel',
+  },
+  {
+    label: 'Saldo Akun memakai rail horizontal (geser kiri/kanan) di beranda',
+    pass: /export function accountRail/.test(cardsJs)
+      && /data-rail-nav/.test(cardsJs)
+      && /data-rail/.test(await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8'))
+      && /\.account-rail \{ display: grid; grid-auto-flow: column/.test(cssComponents)
+      && /\.rail-wrap\.has-overflow:not\(\.is-end\)::after/.test(cssComponents),
+    hint: 'grid 190px 10 akun (1480 px) membuat beranda sangat panjang; rail dapat digeser lebih hemat 90%',
+  },
+  {
+    label: 'Hutang & Piutang beranda digabung satu kartu (.pair-stack)',
+    pass: /export function debtPairCard/.test(cardsJs)
+      && /\.pair-stack \{ display: grid; grid-template-columns: minmax\(0, 1fr\)/.test(cssComponents)
+      && (await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8')).includes('debtPairCard({')
+      && !/<h3>Hutang<\/h3>/.test(await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8')),
+    hint: 'dua kartu terpisah (507 + 247 px di ponsel) digantikan dua baris ringkas dengan aksi cepat',
+  },
+  {
+    label: 'ledger Transaksi Terbaru beranda memakai mode ringkas 5 baris',
+    pass: /HOME_RECENT_LIMIT = 5/.test(await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8'))
+      && /ledgerHtml\(recent, \{ state, masked: hide, compact: true, limit: HOME_RECENT_LIMIT \}\)/.test(await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8'))
+      && /\.card-flush > \.ledger-card \{/.test(cssComponents),
+    hint: 'daftar ber-header-hari setinggi 748 px di ponsel; mode ringkas (tanpa header hari) menjadi ±264 px',
   },
   {
     label: 'tombol "Lihat semua" pada ledger tersemat bisa diklik (data-statement)',
