@@ -66,6 +66,9 @@ const EMPTY_STATE = {
   },
   demo: false,
   version: 1,
+  users: [],
+  needsUser: false,
+  legacyData: false,
 };
 
 /** Storage mode can only be known once the async storage probe settles. */
@@ -117,23 +120,101 @@ function patch(partial, reason) {
 /* ------------------------------------------------------------------ */
 
 export async function initStore() {
-  const [profileRows, settingsRows, accounts, transactions, categories, debts, debtPayments,
+  const users = await idb.listProfiles();
+
+  // Belum ada pengguna di perangkat ini → tampilkan layar perkenalan (nama wajib diisi).
+  if (!users.length) {
+    idb.setUserScope(null);
+    state = { ...EMPTY_STATE, ready: true, needsUser: true };
+    applyProfileFormatting(state.profile);
+    setupNetworkWatchers();
+    setupCrossTab();
+    emit('init');
+    return state;
+  }
+
+  const activeId = (await idb.getMeta('active_user')) || users[0].id;
+  const profile = users.find((u) => u.id === activeId) || users[0];
+  await loadUser(profile, users);
+  setupNetworkWatchers();
+  setupCrossTab();
+  emit('init');
+  return state;
+}
+
+/**
+ * Muat semua data milik satu pengguna. `idb.setUserScope` memastikan baca/tulis
+ * hanya menyentuh baris milik pengguna tersebut.
+ */
+async function loadUser(profile, users = null) {
+  idb.setUserScope(profile.id);
+  const [settingsRows, accounts, transactions, categories, debts, debtPayments,
     receivables, receivablePayments, budgets, notifications, outbox] = await Promise.all([
-    idb.getAll('profiles'), idb.getAll('settings'), idb.getAll('accounts'), idb.getAll('transactions'),
-    idb.getAll('categories'), idb.getAll('debts'), idb.getAll('debt_payments'), idb.getAll('receivables'),
+    idb.getAll('settings'), idb.getAll('accounts'), idb.getAll('transactions'), idb.getAll('categories'),
+    idb.getAll('debts'), idb.getAll('debt_payments'), idb.getAll('receivables'),
     idb.getAll('receivable_payments'), idb.getAll('budgets'), idb.getAll('notifications'), idb.getAll('outbox'),
   ]);
 
-  let profile = profileRows[0] || null;
-  let demo = false;
+  const resolved = { ...DEFAULT_PROFILE, ...profile };
+  const rows = accounts.length + transactions.length + categories.length
+    + debts.length + receivables.length + budgets.length;
 
-  if (!profile) {
-    // first run → scaffold a complete, realistic workspace
-    profile = { ...DEFAULT_PROFILE, id: 'local' };
-    await idb.put('profiles', profile);
+  state = {
+    ...EMPTY_STATE,
+    profile: resolved,
+    accounts,
+    transactions,
+    categories,
+    debts,
+    debtPayments,
+    receivables,
+    receivablePayments,
+    budgets,
+    notifications,
+    outbox,
+    settings: Object.fromEntries(settingsRows.map((row) => [row.key, row.value])),
+    demo: !!profile.demo_loaded,
+    ready: true,
+    users: users || state.users,
+    // Nama bawaan "Pemilik Akun" berarti pengguna belum pernah memperkenalkan diri.
+    needsUser: !resolved.onboarding_done || resolved.name === DEFAULT_PROFILE.name,
+    legacyData: rows > 0 && resolved.id === 'local',
+    sync: { ...EMPTY_STATE.sync, pending: outbox.filter((o) => o.sync_status === 'pending').length },
+  };
+  applyProfileFormatting(state.profile);
+  state = { ...state, sync: { ...state.sync, ...storageSync() } };
+  await idb.setMeta('active_user', resolved.id);
+  // idempoten (dedupe per `key`), jadi aman dipanggil setiap kali pengguna dimuat
+  await syncDerived({ notify: true });
+  patch({}, 'user-loaded');
+  return state;
+}
+
+/**
+ * Buat pengguna baru. Default: mulai dari DATA KOSONG (hanya kategori bawaan),
+ * dengan opsi `mode: 'demo'` bila pengguna ingin melihat contoh.
+ */
+export async function createUser({ name, mode = 'empty' } = {}) {
+  const clean = String(name || '').trim();
+  if (clean.length < 2) throw new AppError('Nama minimal 2 karakter.', { code: 'name', fields: { name: 'Nama minimal 2 karakter.' } });
+
+  const profile = {
+    ...DEFAULT_PROFILE,
+    id: uid('usr'),
+    name: clean,
+    created_at: new Date().toISOString(),
+    onboarding_done: true,
+    demo_loaded: mode === 'demo',
+  };
+
+  await idb.saveProfile(profile);
+  idb.setUserScope(profile.id);
+  await idb.putMany('categories', buildDefaultCategories(profile.id));
+  await idb.put('settings', { key: 'theme', value: profile.theme });
+
+  if (mode === 'demo') {
     const dataset = buildDemoDataset(profile.id);
     await Promise.all([
-      idb.putMany('categories', dataset.categories),
       idb.putMany('accounts', dataset.accounts),
       idb.putMany('transactions', dataset.transactions),
       idb.putMany('debts', dataset.debts),
@@ -141,51 +222,82 @@ export async function initStore() {
       idb.putMany('receivables', dataset.receivables),
       idb.putMany('receivable_payments', dataset.receivablePayments),
       idb.putMany('budgets', dataset.budgets),
-      idb.put('settings', { key: 'theme', value: profile.theme }),
-      idb.put('settings', { key: 'seeded', value: true }),
     ]);
-    demo = true;
-    await idb.put('profiles', { ...profile, demo_loaded: true });
-    state = {
-      ...EMPTY_STATE,
-      profile: { ...profile, demo_loaded: true },
-      accounts: dataset.accounts,
-      transactions: dataset.transactions,
-      categories: dataset.categories,
-      debts: dataset.debts,
-      debtPayments: dataset.debtPayments,
-      receivables: dataset.receivables,
-      receivablePayments: dataset.receivablePayments,
-      budgets: dataset.budgets,
-      notifications: [],
-      settings: { theme: profile.theme },
-      outbox: [],
-      demo: true,
-      ready: true,
-    };
-  } else {
-    state = {
-      ...EMPTY_STATE,
-      profile: { ...DEFAULT_PROFILE, ...profile },
-      accounts, transactions, categories, debts, debtPayments, receivables,
-      receivablePayments, budgets, notifications, outbox,
-      settings: Object.fromEntries(settingsRows.map((s) => [s.key, s.value])),
-      demo: !!profile.demo_loaded,
-      ready: true,
-      sync: { ...EMPTY_STATE.sync, pending: outbox.filter((o) => o.sync_status === 'pending').length },
-    };
   }
 
-  applyProfileFormatting(state.profile);
-  // derive entity statuses AND surface the first batch of alerts (overdue debt,
-  // budget warnings, due-soon receivables, welcome message)
-  // now that the storage probe has resolved, publish the real persistence mode
-  state = { ...state, sync: { ...state.sync, ...storageSync() } };
-  await syncDerived({ notify: true });
-  setupNetworkWatchers();
-  setupCrossTab();
-  emit('init');
-  return state;
+  const users = await idb.listProfiles();
+  await loadUser(profile, users);
+  emit('data-reloaded');
+  return profile;
+}
+
+/**
+ * Selesaikan perkenalan untuk profil yang sudah ada (mis. data lama sebelum
+ * multi-pengguna). `keepData: false` → mulai dari kosong.
+ */
+export async function completeOnboarding({ name, keepData = false, mode } = {}) {
+  const clean = String(name || '').trim();
+  if (clean.length < 2) throw new AppError('Nama minimal 2 karakter.', { code: 'name', fields: { name: 'Nama minimal 2 karakter.' } });
+
+  await updateProfile({ name: clean, onboarding_done: true });
+  if (!keepData) {
+    if (mode === 'demo') {
+      await loadDemoData();
+    } else {
+      await startFresh({ keepCategories: true, openingBalance: 0, withAccount: false });
+    }
+  }
+  state = { ...state, needsUser: false, legacyData: false };
+  emit('user-ready');
+  return state.profile;
+}
+
+/** Pindah pengguna aktif (data lain tidak tersentuh). */
+export async function switchUser(userId) {
+  const users = await idb.listProfiles();
+  const profile = users.find((u) => u.id === userId);
+  if (!profile) throw new AppError('Pengguna tidak ditemukan.', { code: 'user' });
+  await loadUser(profile, users);
+  emit('data-reloaded');
+  return profile;
+}
+
+export async function renameUser(userId, name) {
+  const clean = String(name || '').trim();
+  if (clean.length < 2) throw new AppError('Nama minimal 2 karakter.', { code: 'name' });
+  const users = await idb.listProfiles();
+  const profile = users.find((u) => u.id === userId);
+  if (!profile) throw new AppError('Pengguna tidak ditemukan.', { code: 'user' });
+  const next = { ...profile, name: clean, updated_at: new Date().toISOString() };
+  await idb.saveProfile(next);
+  patch({ users: await idb.listProfiles() }); // daftar di state harus ikut segar
+  if (next.id === state.profile.id) patch({ profile: { ...state.profile, name: clean } }, 'profile');
+  emit('users');
+  return next;
+}
+
+/** Hapus pengguna beserta seluruh datanya. */
+export async function deleteUser(userId) {
+  await idb.purgeUser(userId);
+  const users = await idb.listProfiles();
+  if (!users.length) {
+    idb.setUserScope(null);
+    state = { ...EMPTY_STATE, ready: true, needsUser: true, users: [] };
+    emit('data-reloaded');
+    return null;
+  }
+  if (userId === state.profile.id) {
+    await loadUser(users[0], users);
+    emit('data-reloaded');
+    return users[0];
+  }
+  patch({ users }, 'users');
+  emit('users');
+  return state.profile;
+}
+
+export async function listUsers() {
+  return idb.listProfiles();
 }
 
 function applyProfileFormatting(profile) {
@@ -864,7 +976,7 @@ export async function loadDemoData() {
 }
 
 /** Reset everything except the essentials the user needs to start clean. */
-export async function startFresh({ keepCategories = true, openingBalance = 0 } = {}) {
+export async function startFresh({ keepCategories = true, openingBalance = 0, withAccount = true } = {}) {
   const categories = keepCategories ? state.categories.length ? state.categories : buildDefaultCategories(state.profile.id) : buildDefaultCategories(state.profile.id);
   await Promise.all([
     idb.clearStore('transactions'), idb.clearStore('debt_payments'), idb.clearStore('receivable_payments'),
@@ -885,11 +997,11 @@ export async function startFresh({ keepCategories = true, openingBalance = 0 } =
     icon: 'cash',
     is_default: true,
   });
-  await idb.put('accounts', defaultAccount);
+  if (withAccount) await idb.put('accounts', defaultAccount);
   await updateProfile({ demo_loaded: false, onboarding_done: true });
   patch({
     categories: categoriesToWrite,
-    accounts: [defaultAccount],
+    accounts: withAccount ? [defaultAccount] : [],
     transactions: [], debts: [], debtPayments: [], receivables: [], receivablePayments: [],
     budgets: [], notifications: [], demo: false,
   }, 'fresh-start');
@@ -972,6 +1084,13 @@ export const store = {
   exportDataset,
   flushOutbox,
   validateTransaction,
+  // multi-pengguna
+  listUsers,
+  createUser,
+  switchUser,
+  renameUser,
+  deleteUser,
+  completeOnboarding,
 };
 
 export default store;

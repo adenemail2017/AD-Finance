@@ -530,3 +530,10 @@
   .chart-card .segmented { width: 100%; }
   .chart-card .segmented button { flex: 1 1 0; }
 }
+
+/* Multi-pengguna (v2.5): layar perkenalan & panduan langkah di ponsel */
+@media (max-width: 760px) {
+  .onboard-card { padding: var(--s-5); gap: var(--s-4); }
+  .onboard-head { flex-direction: column; gap: var(--s-3); }
+  .first-run-grid { grid-template-columns: minmax(0, 1fr); }
+}

@@ -1,6 +1,6 @@
 # Roadmap & status
 
-Dikerjakan bertahap sesuai 12 fase yang diminta; setiap fase menjaga kompatibilitas dengan fase sebelumnya (tidak ada fitur lama yang rusak — dijaga oleh 154 pemeriksaan otomatis).
+Dikerjakan bertahap sesuai 12 fase yang diminta; setiap fase menjaga kompatibilitas dengan fase sebelumnya (tidak ada fitur lama yang rusak — dijaga oleh 35 pemeriksa integritas + 222 smoke + 39 unit + 12 sandbox).
 
 | # | Fase | Status | Bukti |
 |---|---|---|---|
@@ -14,8 +14,8 @@ Dikerjakan bertahap sesuai 12 fase yang diminta; setiap fase menjaga kompatibili
 | 8 | Analytics | ✅ | 11 grafik, rentang 7D/30D/3M/6M/1Y/Semua/Custom |
 | 9 | Budget & notifikasi | ✅ | budget per kategori, ambang 80%/100%, 6 jenis notifikasi turunan |
 | 10 | PWA & offline | ✅ | manifest, service worker 41 entri precache, outbox + auto-sync, install prompt, splash |
-| 11 | Auth & keamanan | ✅ | PIN lock (salted SHA-256 ×120), isolasi data per user di API + RLS, masking nomor rekening |
-| 12 | Testing · bugfix · performa | ✅ | 39 unit/integration + 103 smoke + 12 sandbox + pemeriksa integritas |
+| 11 | Auth & keamanan | ✅ | PIN lock (salted SHA-256 ×120), isolasi data per user di API + RLS, masking nomor rekening, **multi-pengguna: onboarding nama wajib + workspace kosong per pengguna** |
+| 12 | Testing · bugfix · performa | ✅ | 39 unit/integration + 222 smoke + 12 sandbox + 35 pemeriksa integritas + audit browser (layout & multiuser) |
 
 ## Bug nyata yang ditemukan test dan sudah diperbaiki
 
@@ -31,6 +31,7 @@ Dikerjakan bertahap sesuai 12 fase yang diminta; setiap fase menjaga kompatibili
 10. Duplikat transaksi bisa lolos di API karena server hanya memeriksa fingerprint bila klien mengirimkannya.
 11. Sinkronisasi tidak idempotent di mode in-memory → mengirim ulang batch menggandakan transaksi.
 12. `header`/format `type` akun tidak konsisten antar endpoint (`account_type` vs `type`) → klien salah memilih akun.
+13. `renameUser` menyimpan profil baru tetapi daftar pengguna di state tidak ikut disegarkan → baris yang baru diganti namanya jadi tidak ketemu (ditemukan uji `audit:multiuser`).
 
 ## Iterasi 2 — rebranding & UI chrome (permintaan pengguna)
 
@@ -214,6 +215,30 @@ Mode `compact` pada `ledgerHtml()` juga dipakai popup Hutang/Piutang ("Transaksi
 hasil Pencarian Global (`.ledger-card-flat`), jadi seluruh ledger tersemat kini konsisten.
 
 **Bukti:** `preview/perbaikan-ledger-popup.png` · **Verifikasi:** +3 invariant (total 22), +5 pemeriksaan smoke (total 180).
+
+## Iterasi 9 — multi-pengguna: nama wajib dulu, mulai dari nol (v2.5.0)
+
+**Permintaan:** "sekarang saya mau setiap user harus input nama dulu dan memulai dengan data kosong.. saya mau setiap user memiliki datanya masing masing."
+
+Sebelumnya aplikasi selalu membuat profil `local` berisi data contoh pada boot pertama — siapa pun yang membuka aplikasi
+langsung melihat saldo, transaksi, dan hutang orang lain. Sekarang boot berhenti di **layar perkenalan** dan menunggu nama.
+
+| Lapisan | Sebelum | Sesudah |
+|---|---|---|
+| Boot pertama | demo 196 transaksi otomatis dimuat | **layar perkenalan**, nama wajib ≥ 2 karakter (Enter untuk lanjut) |
+| Pilihan awal | (tanpa pilihan) | **Data kosong** (default) · Isi dengan data contoh — pilihan eksplisit pengguna |
+| Perangkat lama | — | pilihan **"Pertahankan data yang ada"** disorot; data lama tetap utuh |
+| Penyimpanan | satu ruang `user_id: 'local'` | **satu ruang per pengguna**: `user_id` disematkan ke setiap baris, kunci setelan ber-prefix `<userId>:` dan di-strip saat dibaca |
+| Aksi merusak | `startFresh` / `wipeEverything` menghapus seluruh basis data | hanya menghapus baris milik **pengguna aktif** — pengguna lain tak tersentuh |
+| Pengelolaan | — | kartu **Pengguna** di Pengaturan + baris pengguna di menu profil: tambah, ganti, ganti nama, hapus (beserta seluruh datanya) |
+| Beranda kosong | dashboard Rp 0 tanpa penjelasan | kartu **"Mulai dari sini"** dengan tiga langkah pertama |
+
+**Prinsip yang dijaga:** kategori bawaan tetap ada di tiap workspace baru (agar pengguna bisa langsung mencatat < 10 detik),
+PIN lock tetap berlaku, dan seluruh invarian akuntansi tidak berubah.
+
+**Bukti:** `preview/multi-pengguna-2.5.0.png` (layar perkenalan, beranda kosong, perangkat lama, kartu Pengguna) ·
+**Verifikasi:** 35 pemeriksa integritas, **222/222** smoke, 39 unit, 12 sandbox, `audit:multiuser` **25/25** (browser sungguhan,
+termasuk satu browser terpisah untuk skenario perangkat lama).
 
 ## Prinsip untuk perubahan berikutnya
 

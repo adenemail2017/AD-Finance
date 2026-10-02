@@ -8,7 +8,7 @@ import { storageEstimate, requestPersistence, isFallbackMode, persistenceLabel }
 import { exportDataset, importDataset } from '../services/store.js';
 import { hasPin, setPin, removePin, lock, pinStrength } from '../services/security.js';
 import { esc, on, qs, qsa } from '../utils/dom.js';
-import { money } from '../utils/format.js';
+import { initialsOf, money } from '../utils/format.js';
 import { icon, iconTile } from '../components/icons.js';
 import { APP_VERSION } from '../sw-client.js';
 import {
@@ -166,6 +166,31 @@ export const settingsPage = {
           </div>
 
           <div class="bento">
+            <section class="card col-5 tint-brand" data-user-card>
+              <div class="card-head">
+                <div><h3>Pengguna</h3><div class="card-sub">${(state.users || []).length} workspace terpisah di perangkat ini</div></div>
+                ${iconTile('users', { color: 'var(--brand-500)', size: 34, radius: 11, iconSize: 17 })}
+              </div>
+              <div class="stack-3" data-user-list>
+                ${(state.users || []).map((u) => `<div class="user-row ${u.id === state.profile.id ? 'is-active' : ''}" data-user-row="${esc(u.id)}">
+                  <span class="avatar">${esc(initialsOf(u.name))}</span>
+                  <div class="grow" style="min-width:0">
+                    <div class="t-sm t-semibold t-clip">${esc(u.name)}</div>
+                    <div class="t-2xs t-dim">${u.id === state.profile.id ? 'Sedang aktif' : 'Tersimpan di perangkat ini'}</div>
+                  </div>
+                  ${u.id === state.profile.id ? badgeHtml('Aktif', 'pos', { icon: 'circle-check' })
+    : `<button class="btn btn-sm btn-outline" data-switch-user="${esc(u.id)}">Ganti</button>`}
+                </div>`).join('')}
+              </div>
+              <div class="card-foot">
+                <div class="row wrap gap-2">
+                  <button class="btn btn-primary" data-add-user>${icon('plus', { size: 16 })} Tambah pengguna</button>
+                  <button class="btn btn-outline" data-manage-users>${icon('settings', { size: 16 })} Kelola</button>
+                </div>
+                <div class="t-2xs t-dim mt-2">Nama pengguna aktif: <b>${esc(state.profile.name)}</b> — ubah di kartu Profil. Setiap pengguna punya akun, transaksi, dan budget sendiri.</div>
+              </div>
+            </section>
+
             <section class="card col-7">
               <div class="card-head">
                 <div><h3>Data Keuangan</h3><div class="card-sub">Export, restore, dan reset</div></div>
@@ -368,6 +393,17 @@ export const settingsPage = {
           });
           input.click();
         }),
+        on(root, 'click', '[data-add-user]', () => window.__pfos?.openUserForm?.()),
+        on(root, 'click', '[data-manage-users]', () => window.__pfos?.openUserManager?.()),
+        on(root, 'click', '[data-switch-user]', async (event, el) => {
+          try {
+            const profile = await store.switchUser(el.dataset.switchUser);
+            toast(`Beralih ke ${profile.name}.`, { tone: 'info' });
+            ctx.rerender();
+          } catch (error) {
+            toast(error?.message || 'Gagal berpindah pengguna.', { tone: 'neg' });
+          }
+        }),
         on(root, 'click', '[data-load-demo]', async () => {
           const yes = await confirmDialog({
             title: 'Muat data contoh?',
@@ -393,7 +429,7 @@ export const settingsPage = {
         on(root, 'click', '[data-wipe]', async () => {
           const yes = await confirmDialog({
             title: 'Hapus SEMUA data?',
-            message: 'Database lokal akan dihapus total lalu diinisialisasi ulang dengan data contoh. Pastikan Anda sudah membuat backup.',
+            message: 'Seluruh data pengguna yang sedang aktif akan dihapus (pengguna lain tidak terpengaruh). Pastikan Anda sudah membuat backup.',
             confirmText: 'Hapus semuanya', tone: 'danger', iconName: 'trash',
           });
           if (!yes) return;

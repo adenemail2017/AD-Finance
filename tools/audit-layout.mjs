@@ -85,6 +85,12 @@ for (const vp of VIEWPORTS) {
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto(BASE, { waitUntil: 'networkidle2', timeout: 60000 });
   await page.waitForFunction(() => Boolean(window.__pfos), { timeout: 30000 });
+  // Browser headless selalu mulai dari perangkat kosong → siapkan satu pengguna uji
+  // dengan data contoh supaya semua halaman punya konten untuk dinilai.
+  await page.evaluate(async () => {
+    if (window.__pfos.needsUser()) await window.__pfos.createUser({ name: 'Audit Layout', mode: 'demo' });
+  });
+  await page.waitForSelector('#view .card', { timeout: 30000 });
 
   for (const [route, label] of ROUTES) {
     await page.evaluate((r) => window.__pfos.navigate(r), route);

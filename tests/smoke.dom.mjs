@@ -132,6 +132,41 @@ console.log('\u001b[1mAD-Finance — DOM smoke test\u001b[0m');
 
 const t0 = Date.now();
 await import(join(ROOT, 'src/app.js'));
+await waitFor(() => window.__pfos, { label: 'api siap', timeout: 12000 });
+
+/* ------------------------------------------------------------------ */
+/* Gerbang perkenalan: nama wajib diisi sebelum workspace dibuat       */
+/* ------------------------------------------------------------------ */
+
+section('Perkenalan pengguna (wajib isi nama)');
+const q = (sel) => window.document.querySelector(sel);
+const qa = (sel) => [...window.document.querySelectorAll(sel)];
+const tap = (el) => el.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+const nameInput = await waitFor(() => q('[data-onboard-name]'), { label: 'layar perkenalan', timeout: 8000 });
+check('aplikasi menahan diri di layar perkenalan', Boolean(q('.onboarding')) && !q('#view .card'));
+check('permintaan nama tampil dengan label jelas', Boolean(nameInput) && /Nama Anda/.test(q('.onboard-card')?.textContent || ''));
+check('pilihan "data kosong" jadi default', q('input[name="onboard-mode"]:checked')?.value === 'empty');
+tap(q('[data-onboard-submit]'));
+await sleep(60);
+check('tombol mulai ditolak selama nama kosong', q('[data-onboard-error]')?.hidden === false);
+check('workspace belum dibuat selama nama kosong',
+  qa('#view .card').length === 0 && window.__pfos.needsUser() === true && window.__pfos.getState().accounts.length === 0);
+
+// lengkapi perkenalan (dengan data contoh) supaya sisa suite punya fixture
+nameInput.value = 'Aden Penguji';
+nameInput.dispatchEvent(new window.Event('input', { bubbles: true }));
+const demoOpt = q('input[name="onboard-mode"][value="demo"]');
+demoOpt.checked = true;
+demoOpt.dispatchEvent(new window.Event('change', { bubbles: true }));
+check('opsi "data contoh" bisa dipilih', q('input[name="onboard-mode"]:checked')?.value === 'demo');
+tap(q('[data-onboard-submit]'));
+await waitFor(() => window.__pfos.getState().users.length === 1, { label: 'workspace dibuat', timeout: 8000 });
+await waitFor(() => window.__pfos.getState().accounts.length > 0, { label: 'data contoh dimuat', timeout: 8000 });
+check('perkenalan selesai → workspace pengguna baru dibuat', window.__pfos.needsUser() === false);
+check('pengguna baru tercatat di registry', window.__pfos.getState().users.length === 1
+  && window.__pfos.getState().profile.name === 'Aden Penguji',
+  window.__pfos.getState().profile.name);
+check('data contoh dimuat karena opsi demo dipilih', window.__pfos.getState().accounts.length === 10);
 await waitFor(() => window.document.querySelector('#view .card'), { label: 'dashboard render', timeout: 12000 });
 const bootMs = Date.now() - t0;
 
@@ -174,6 +209,7 @@ check('card number is masked (never the full account number)',
   /••••/.test(atm.textContent) && !/8820114778|8820 114 778/.test(atm.textContent));
 check('card has chip + contactless artwork', Boolean($('.atm-chip svg')) && Boolean($('.atm-contactless svg')));
 check('card dates itself with Member Since', /Member Since/.test(atm.textContent));
+check('kartu memakai nama pengguna yang baru dibuat', /Aden Penguji/.test(window.document.body.textContent));
 check('headline stats sit beside the card', $$('#view .atm-stat').length === 4);
 check('12-column bento grid used', $$('.bento').length >= 3);
 check('metric cards rendered', $$('.metric-value').length >= 4, `${$$('.metric-value').length}`);
@@ -801,6 +837,86 @@ check('recap ends with a sectioned trend block', /Tren/.test($('#view').textCont
 
 window.__pfos.navigate('transactions');
 await waitFor(() => $('#view .tool-card'), { label: 'transactions again' });
+
+/* ------------------------------------------------------------------ */
+/* Isolasi data antar pengguna                                         */
+/* ------------------------------------------------------------------ */
+
+section('Isolasi data antar pengguna');
+const idbMod = await import(join(ROOT, 'src/database/idb.js'));
+const userA = window.__pfos.getState().profile;
+const jumlahA = window.__pfos.getState().transactions.length;
+const akunA = window.__pfos.getState().accounts.length;
+
+// pengguna kedua: mulai dari data kosong
+const userB = await window.__pfos.createUser({ name: 'Rekan Kosong', mode: 'empty' });
+await waitFor(() => window.__pfos.getState().profile.id === userB.id, { label: 'pindah ke pengguna B' });
+check('pengguna baru mulai dengan data kosong (0 akun, 0 transaksi)',
+  window.__pfos.getState().accounts.length === 0 && window.__pfos.getState().transactions.length === 0,
+  `${window.__pfos.getState().accounts.length} akun`);
+check('kategori bawaan tetap tersedia untuk mulai mencatat',
+  window.__pfos.getState().categories.length > 0, `${window.__pfos.getState().categories.length} kategori`);
+check('dua pengguna tercatat di registry', window.__pfos.getState().users.length === 2);
+check('lapisan penyimpanan hanya mengembalikan baris milik pengguna aktif',
+  (await idbMod.getAll('transactions')).length === 0,
+  `${(await idbMod.getAll('transactions')).length} baris terlihat`);
+check('setelan juga terpisah per pengguna',
+  (await idbMod.getAll('settings')).every((row) => !row.key.includes(userA.id)));
+
+// menu profil (gaya mobile): chip semua pengguna + tombol tambah
+click(q('[data-profile]'));
+await sleep(200);
+const chips = qa('.sheet [data-switch-user]');
+check('menu profil menampilkan chip kedua pengguna + tombol Tambah',
+  chips.length === 2 && Boolean(q('.sheet [data-add-user]')), `${chips.length} chip`);
+click(chips.find((c) => /aden penguji/i.test(c.textContent)) || chips[0]);
+await waitFor(() => window.__pfos.getState().profile.name === 'Aden Penguji', { label: 'pindah dari menu profil' });
+check('pindah pengguna dari menu profil berfungsi', window.__pfos.getState().profile.name === 'Aden Penguji');
+window.document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+await sleep(150);
+await window.__pfos.switchUser(userB.id);
+await waitFor(() => window.__pfos.getState().profile.id === userB.id, { label: 'kembali ke pengguna B' });
+
+window.__pfos.navigate('dashboard');
+window.__pfos.rerender();
+await sleep(120);
+await waitFor(() => q('#view .card'), { label: 'dashboard pengguna B' });
+(function () {
+  const card = q('#view .atm-card');
+  const view = q('#view');
+  check('dashboard pengguna B memakai namanya sendiri', /rekan kosong/i.test(card?.textContent || ''),
+    `route=${window.location.hash} card=${Boolean(card)} view="${(view?.textContent || '').replace(/\s+/g, ' ').slice(0, 120)}"`);
+})();
+check('panduan "Mulai dari sini" muncul di workspace kosong', Boolean(q('#view [data-first-run]')));
+check('transaksi pengguna A tidak bocor ke pengguna B',
+  !new RegExp(String(jumlahA)).test(q('#view [data-recent]')?.textContent || '') || jumlahA === 0);
+
+// kembali ke pengguna A → datanya utuh
+await window.__pfos.switchUser(userA.id);
+await waitFor(() => window.__pfos.getState().profile.id === userA.id, { label: 'kembali ke A' });
+check('kembali ke pengguna A memuat kembali datanya',
+  window.__pfos.getState().accounts.length === akunA && window.__pfos.getState().transactions.length === jumlahA,
+  `${window.__pfos.getState().accounts.length} akun · ${window.__pfos.getState().transactions.length} transaksi`);
+
+// ganti nama & hapus pengguna
+await window.__pfos.renameUser(userB.id, 'Rekan Diubah');
+check('ganti nama pengguna tersimpan di registry',
+  (await window.__pfos.users()).find((u) => u.id === userB.id)?.name === 'Rekan Diubah');
+await window.__pfos.deleteUser(userB.id);
+await waitFor(() => window.__pfos.getState().users.length === 1, { label: 'pengguna B dihapus' });
+check('hapus pengguna membersihkan datanya tanpa menyentuh pengguna lain',
+  window.__pfos.getState().users.length === 1
+  && window.__pfos.getState().accounts.length === akunA,
+  `${window.__pfos.getState().users.length} pengguna · ${window.__pfos.getState().accounts.length} akun`);
+check('baris pengguna yang dihapus benar-benar hilang dari penyimpanan',
+  (await idbMod.getAll('accounts')).length === akunA,
+  `${(await idbMod.getAll('accounts')).length} akun tersimpan`);
+
+window.__pfos.navigate('settings');
+await waitFor(() => q('#view [data-user-card]'), { label: 'kartu pengguna di settings' });
+check('Settings punya kartu Pengguna dengan daftar workspace',
+  /Aden Penguji/.test(q('#view [data-user-card]').textContent));
+check('tombol tambah pengguna tersedia di Settings', Boolean(q('#view [data-add-user]')));
 
 section('Console hygiene');
 check('no uncaught errors during full run', consoleErrors.length === 0, consoleErrors.slice(0, 2).join(' | '));

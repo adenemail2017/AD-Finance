@@ -1,9 +1,9 @@
 {
   "name": "ad-finance",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "private": true,
   "type": "module",
-  "description": "AD-Finance \u2014 offline-first PWA for personal income, expenses, transfers, debts, receivables, statements, reports and analytics. Zero runtime dependencies.",
+  "description": "AD-Finance — offline-first PWA for personal income, expenses, transfers, debts, receivables, statements, reports and analytics. Zero runtime dependencies.",
   "keywords": [
     "pwa",
     "personal-finance",
@@ -26,7 +26,8 @@
     "deploy:prod": "bash tools/deploy-vercel.sh --prod",
     "verify:bundle": "node tools/verify-bundle.mjs",
     "audit:live": "node tools/audit-live.mjs",
-    "audit:layout": "node tools/audit-layout.mjs"
+    "audit:layout": "node tools/audit-layout.mjs",
+    "audit:multiuser": "node tools/audit-multiuser.mjs"
   },
   "engines": {
     "node": "22.x"

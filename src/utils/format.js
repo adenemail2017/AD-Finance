@@ -148,3 +148,8 @@ export function truncate(str, len = 40) {
 export function plural(n, singular, p) {
   return n === 1 ? singular : (p || `${singular}`);
 }
+
+/** Inisial nama untuk avatar: "Ade Nurrahman" → "AN". */
+export function initialsOf(name = '') {
+  return String(name).trim().split(/\s+/).slice(0, 2).map((part) => part[0] || '').join('').toUpperCase() || 'GU';
+}

@@ -11,11 +11,11 @@ import { unreadCount, refreshNotifications } from './services/notifications.js';
 import { hasPin, isUnlocked, markUnlocked, verifyPin } from './services/security.js';
 import { registerServiceWorker, checkForUpdate, cacheVersion } from './sw-client.js';
 import { esc, on, qs, qsa } from './utils/dom.js';
-import { MASK, money } from './utils/format.js';
+import { MASK, money, initialsOf } from './utils/format.js';
 import { formatMonth, todayISO, monthKey } from './utils/date.js';
 import { icon, iconTile, logoMark } from './components/icons.js';
 import {
-  badgeHtml, closeDropdown, closeTopOverlay, emptyState, isOverlayOpen, openAdaptive, toast,
+  badgeHtml, closeDropdown, closeTopOverlay, confirmDialog, emptyState, isOverlayOpen, openAdaptive, toast,
 } from './components/ui.js';
 import { openTransactionForm } from './components/ledger.js';
 
@@ -229,10 +229,6 @@ function overdueBadge(state) {
   return count ? `<span class="nav-badge">${count}</span>` : '';
 }
 
-function initialsOf(name = '') {
-  return String(name).split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || 'PF';
-}
-
 function netWorthValue(state) {
   const balances = new Map();
   state.accounts.forEach((a) => balances.set(a.id, a.opening_balance));
@@ -380,6 +376,7 @@ function renderRoute() {
 }
 
 function rerenderCurrent() {
+  if (!document.getElementById('view')) return; // shell belum berdiri (layar perkenalan)
   renderRoute();
 }
 
@@ -533,6 +530,19 @@ function openProfileMenu() {
       </div>
       <div class="row-between t-xs"><span class="t-dim">Mata uang</span><span class="t-semibold">${esc(state.profile.currency)} · ${esc(state.profile.locale)}</span></div>
       <div class="row-between t-xs"><span class="t-dim">Penyimpanan</span><span class="t-semibold">${esc(state.sync.mode)}</span></div>
+      <div class="user-strip">
+        <div class="row-between">
+          <span class="t-label">Pengguna di perangkat ini</span>
+          <button class="btn btn-sm btn-ghost" data-manage-users>Kelola</button>
+        </div>
+        <div class="user-chips">
+          ${(store.state.users || []).map((u) => `<button class="user-chip ${u.id === state.profile.id ? 'is-active' : ''}" data-switch-user="${esc(u.id)}" type="button">
+            <span class="avatar avatar-sm">${esc(initialsOf(u.name))}</span>
+            <span class="t-clip">${esc(u.name)}</span>
+          </button>`).join('')}
+          <button class="user-chip is-add" data-add-user type="button">${icon('plus', { size: 14 })} Tambah</button>
+        </div>
+      </div>
     </div>`,
     footer: `<button class="btn btn-ghost" data-close>Tutup</button>
       ${hasPin(state) ? `<button class="btn btn-outline" data-lock>${icon('lock', { size: 16 })} Kunci</button>` : ''}
@@ -544,6 +554,13 @@ function openProfileMenu() {
         qsa('[data-mode]', sheet).forEach((b) => b.setAttribute('aria-selected', String(b === el)));
       });
       on(sheet, 'click', '[data-settings]', () => { api.close(); navigate('settings'); });
+      on(sheet, 'click', '[data-switch-user]', async (event, el) => {
+        if (el.dataset.switchUser === store.state.profile.id) return;
+        api.close();
+        await switchUserFlow(el.dataset.switchUser);
+      });
+      on(sheet, 'click', '[data-add-user]', () => { api.close(); openUserForm(); });
+      on(sheet, 'click', '[data-manage-users]', () => { api.close(); navigate('settings'); });
       on(sheet, 'click', '[data-lock]', () => { api.close(); lockApp(); });
     },
   });
@@ -815,10 +832,254 @@ async function boot() {
   }
 
   applyTheme(store.state.profile.theme || themeMode);
-
-  renderShell();
+  exposeApi();
   dismissSplash();
   bootScreen.remove();
+
+  // Perkenalan: setiap pengguna wajib mengisi nama sebelum aplikasi dibuka,
+  // dan memulai dengan workspace kosong miliknya sendiri.
+  if (store.state.needsUser) {
+    const stop = store.subscribe((next) => {
+      if (next.needsUser) return;
+      stop();
+      startShell();
+    });
+    renderOnboarding(() => startShell());
+    return;
+  }
+
+  startShell();
+}
+
+/* ---------------------- Perkenalan pengguna ------------------------ */
+
+/**
+ * Layar perkenalan sekaligus gerbang privasi: nama wajib diisi, lalu pengguna
+ * memilih mulai dari data kosong (default) atau memuat data contoh.
+ */
+function renderOnboarding(onDone) {
+  const legacy = store.state.legacyData && store.state.users.length > 0;
+  const wrapper = document.createElement('div');
+  wrapper.className = 'boot-screen onboarding';
+  wrapper.style.zIndex = '880';
+  wrapper.innerHTML = `
+    <div class="onboard-card card">
+      <div class="onboard-head">
+        <div class="boot-mark" style="display:grid;place-items:center">${logoMark(50)}</div>
+        <div>
+          <div class="t-h2">Selamat datang di AD-Finance</div>
+          <div class="t-xs t-dim mt-1">Kenalan dulu ya. Setiap pengguna di perangkat ini punya workspace-nya sendiri, jadi data Anda tidak bercampur dengan pengguna lain.</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="onboard-name">Nama Anda</label>
+        <input class="input" id="onboard-name" data-onboard-name type="text" autocomplete="name"
+          placeholder="cth. Ade Nurrahman" maxlength="40" />
+        <span class="field-error" data-onboard-error hidden>Nama minimal 2 karakter.</span>
+      </div>
+
+      <div class="stack-2">
+        <div class="field-label">Mulai dari mana?</div>
+        <label class="opt-card">
+          <input type="radio" name="onboard-mode" value="empty" ${legacy ? '' : 'checked'} />
+          <span>
+            <b>Data kosong</b>
+            <em>Disarankan — catat keuangan Anda sendiri dari nol.</em>
+          </span>
+        </label>
+        ${legacy ? `<label class="opt-card">
+          <input type="radio" name="onboard-mode" value="keep" checked />
+          <span>
+            <b>Pertahankan data yang ada</b>
+            <em>${store.state.accounts.length} akun · ${store.state.transactions.length} transaksi tersimpan di perangkat ini.</em>
+          </span>
+        </label>` : ''}
+        <label class="opt-card">
+          <input type="radio" name="onboard-mode" value="demo" ${legacy ? '' : ''} />
+          <span>
+            <b>Isi dengan data contoh</b>
+            <em>5 bulan riwayat, 10 akun, hutang &amp; piutang — bisa dihapus kapan saja.</em>
+          </span>
+        </label>
+      </div>
+
+      <button class="btn btn-primary btn-lg btn-block" data-onboard-submit>${icon('arrow-right', { size: 18 })} Mulai gunakan</button>
+      <div class="t-2xs t-dim t-center">Data tersimpan lokal di perangkat ini dan hanya terlihat oleh pengguna ini.</div>
+    </div>`;
+
+  document.body.appendChild(wrapper);
+  const input = qs('[data-onboard-name]', wrapper);
+  const errorEl = qs('[data-onboard-error]', wrapper);
+  input.focus();
+
+  let busy = false;
+  const submit = async () => {
+    if (busy) return;
+    const name = input.value.trim();
+    if (name.length < 2) {
+      errorEl.hidden = false;
+      input.classList.add('is-invalid');
+      input.focus();
+      return;
+    }
+    const mode = qs('input[name="onboard-mode"]:checked', wrapper)?.value || 'empty';
+    busy = true;
+    const button = qs('[data-onboard-submit]', wrapper);
+    button.disabled = true;
+    button.textContent = 'Menyiapkan workspace…';
+    try {
+      if (legacy) {
+        await store.completeOnboarding({ name, keepData: mode === 'keep', mode });
+      } else {
+        await store.createUser({ name, mode: mode === 'demo' ? 'demo' : 'empty' });
+      }
+      wrapper.remove();
+      toast(`Halo, ${name}! Workspace Anda siap.`, { tone: 'pos', duration: 2600 });
+      onDone?.();
+    } catch (error) {
+      busy = false;
+      button.disabled = false;
+      button.innerHTML = `${icon('arrow-right', { size: 18 })} Mulai gunakan`;
+      errorEl.hidden = false;
+      errorEl.textContent = error?.message || 'Gagal menyiapkan workspace.';
+    }
+  };
+
+  on(wrapper, 'click', '[data-onboard-submit]', submit);
+  on(wrapper, 'keydown', '[data-onboard-name]', (event) => { if (event.key === 'Enter') submit(); });
+  input.addEventListener('input', () => { errorEl.hidden = true; input.classList.remove('is-invalid'); });
+}
+
+/* --------------------------- Pengguna ------------------------------ */
+
+/** Pindah pengguna: data langsung dimuat ulang & halaman digambar ulang. */
+async function switchUserFlow(userId) {
+  try {
+    const profile = await store.switchUser(userId);
+    toast(`Beralih ke ${profile.name}.`, { tone: 'info', duration: 2000 });
+    renderRoute();
+  } catch (error) {
+    toast(error?.message || 'Gagal berpindah pengguna.', { tone: 'neg' });
+  }
+}
+
+/** Form tambah pengguna baru (nama wajib; default mulai dari data kosong). */
+function openUserForm({ onDone } = {}) {
+  openAdaptive({
+    title: 'Tambah pengguna',
+    subtitle: 'Workspace baru, terpisah dari pengguna lain di perangkat ini',
+    iconName: 'users',
+    size: 'sm',
+    body: `<div class="stack-4">
+      <div class="field">
+        <label class="field-label" for="user-name">Nama</label>
+        <input class="input" id="user-name" data-user-name type="text" maxlength="40" placeholder="cth. Pasangan / Anggota keluarga" />
+        <span class="field-error" data-user-error hidden>Nama minimal 2 karakter.</span>
+      </div>
+      <div class="stack-2">
+        <div class="field-label">Mulai dari mana?</div>
+        <label class="opt-card"><input type="radio" name="user-mode" value="empty" checked />
+          <span><b>Data kosong</b><em>Disarankan — mulai dari nol.</em></span></label>
+        <label class="opt-card"><input type="radio" name="user-mode" value="demo" />
+          <span><b>Data contoh</b><em>5 bulan riwayat untuk mencoba fitur.</em></span></label>
+      </div>
+      <div class="banner">${icon('info', { size: 18 })}<div class="grow t-xs">
+        Pengguna baru tidak bisa melihat data pengguna lain. Anda dapat berpindah kapan saja dari menu profil.</div></div>
+    </div>`,
+    footer: `<button class="btn btn-ghost" data-close>Batal</button>
+      <button class="btn btn-primary ml-auto" data-save-user>${icon('plus', { size: 16 })} Buat pengguna</button>`,
+    onMount(sheet, api) {
+      const input = qs('[data-user-name]', sheet);
+      const errorEl = qs('[data-user-error]', sheet);
+      input.focus();
+      input.addEventListener('input', () => { errorEl.hidden = true; });
+      on(sheet, 'click', '[data-save-user]', async (event, el) => {
+        const name = input.value.trim();
+        if (name.length < 2) { errorEl.hidden = false; return; }
+        el.disabled = true;
+        el.textContent = 'Menyiapkan…';
+        try {
+          const mode = qs('input[name="user-mode"]:checked', sheet)?.value || 'empty';
+          const profile = await store.createUser({ name, mode });
+          api.close();
+          toast(`Workspace ${profile.name} siap.`, { tone: 'pos' });
+          renderRoute();
+          onDone?.(profile);
+        } catch (error) {
+          el.disabled = false;
+          el.innerHTML = `${icon('plus', { size: 16 })} Buat pengguna`;
+          errorEl.hidden = false;
+          errorEl.textContent = error?.message || 'Gagal membuat pengguna.';
+        }
+      });
+    },
+  });
+}
+
+/** Kelola pengguna: ganti nama atau hapus (data ikut terhapus). */
+function openUserManager() {
+  const users = store.state.users || [];
+  openAdaptive({
+    title: 'Kelola pengguna',
+    subtitle: `${users.length} pengguna di perangkat ini`,
+    iconName: 'users',
+    size: 'sm',
+    body: `<div class="stack-3" data-user-list>
+      ${users.map((u) => `<div class="user-row ${u.id === store.state.profile.id ? 'is-active' : ''}" data-user-row="${esc(u.id)}">
+        <span class="avatar">${esc(initialsOf(u.name))}</span>
+        <div class="grow" style="min-width:0">
+          <div class="t-sm t-semibold t-clip">${esc(u.name)}</div>
+          <div class="t-2xs t-dim">${u.id === store.state.profile.id ? 'Sedang aktif' : 'Tersimpan di perangkat ini'}</div>
+        </div>
+        <button class="btn btn-sm btn-ghost" data-rename-user="${esc(u.id)}" title="Ganti nama">${icon('edit', { size: 15 })}</button>
+        <button class="btn btn-sm btn-danger-soft" data-delete-user="${esc(u.id)}" title="Hapus pengguna">${icon('trash', { size: 15 })}</button>
+      </div>`).join('')}
+    </div>`,
+    footer: `<button class="btn btn-ghost" data-close>Tutup</button>
+      <button class="btn btn-primary ml-auto" data-add-user-2>${icon('plus', { size: 16 })} Tambah pengguna</button>`,
+    onMount(sheet, api) {
+      on(sheet, 'click', '[data-add-user-2]', () => { api.close(); openUserForm(); });
+      on(sheet, 'click', '[data-rename-user]', async (event, el) => {
+        const user = (store.state.users || []).find((u) => u.id === el.dataset.renameUser);
+        const next = window.prompt('Nama baru untuk pengguna ini:', user?.name || '');
+        if (next === null) return;
+        try {
+          await store.renameUser(el.dataset.renameUser, next);
+          api.close();
+          toast('Nama pengguna diperbarui.', { tone: 'pos' });
+          openUserManager();
+        } catch (error) {
+          toast(error?.message || 'Nama tidak valid.', { tone: 'neg' });
+        }
+      });
+      on(sheet, 'click', '[data-delete-user]', async (event, el) => {
+        const user = (store.state.users || []).find((u) => u.id === el.dataset.deleteUser);
+        const yes = await confirmDialog({
+          title: `Hapus ${user?.name || 'pengguna'}?`,
+          message: 'Seluruh data pengguna ini (akun, transaksi, hutang, budget) akan dihapus permanen dari perangkat. Pengguna lain tidak terpengaruh.',
+          confirmText: 'Hapus permanen', tone: 'danger', iconName: 'trash',
+        });
+        if (!yes) return;
+        await store.deleteUser(el.dataset.deleteUser);
+        api.close();
+        toast('Pengguna dihapus.', { tone: 'info' });
+        if (store.state.needsUser) { location.reload(); return; }
+        renderRoute();
+      });
+    },
+  });
+}
+
+/* ------------------------- Shell (setelah masuk) ------------------- */
+
+let shellStarted = false;
+
+function startShell() {
+  if (shellStarted) return;
+  shellStarted = true;
+  renderShell();
+  dismissSplash();
 
   // restore last route
   let initial = parseHash();
@@ -839,7 +1100,8 @@ async function boot() {
       const [latest] = state.notifications;
       if (latest && !latest.read) surfaceBrowserNotification(latest);
     }
-    if (reason === 'external-change') rerenderCurrent();
+    if (reason === 'external-change' || reason === 'data-reloaded') rerenderCurrent();
+    if (reason === 'users') rerenderCurrent();
   });
 
   window.addEventListener('hashchange', renderRoute);
@@ -864,7 +1126,13 @@ async function boot() {
     void update;
   });
 
-  // expose small API for other modules (settings page, install button)
+  if (hasPin(store.state) && !isUnlocked()) lockApp();
+
+  void initial;
+}
+
+/** API kecil untuk modul lain (settings, tombol install) dan untuk QA otomatis. */
+function exposeApi() {
   window.__pfos = {
     getState: () => store.state,
     navigate,
@@ -872,17 +1140,18 @@ async function boot() {
     canInstall: () => Boolean(ui.installEvent),
     checkForUpdate,
     version: cacheVersion(),
+    needsUser: () => Boolean(store.state.needsUser),
+    users: () => store.listUsers(),
+    createUser: (opts) => store.createUser(opts),
+    switchUser: (id) => store.switchUser(id),
+    renameUser: (id, name) => store.renameUser(id, name),
+    deleteUser: (id) => store.deleteUser(id),
+    completeOnboarding: (opts) => store.completeOnboarding(opts),
+    rerender: () => rerenderCurrent(),
+    openUserManager, openUserForm,
   };
-
-  if (hasPin(store.state) && !isUnlocked()) lockApp();
-
-  void initial;
-  void formatMonth;
-  void monthKey;
-  void todayISO;
-  void badgeHtml;
-  void closeTopOverlay;
 }
+
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', boot);

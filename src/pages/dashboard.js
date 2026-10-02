@@ -195,6 +195,8 @@ export const dashboardPage = {
       || accountsActive[0];
 
     const totalAktif = accountsActive.reduce((acc, row) => acc + row.balance, 0);
+    // Workspace baru: tampilkan panduan tiga langkah alih-alih angka kosong.
+    const firstRun = state.accounts.length === 0 && state.transactions.length === 0;
 
     root.innerHTML = `
       <div class="page-enter stack-5">
@@ -215,6 +217,32 @@ export const dashboardPage = {
   })}
           ${netWorthCard(state, { masked: hide })}
         </div>
+
+        ${firstRun ? `<div class="bento">
+          <section class="card col-12 tint-brand" data-first-run>
+            <div class="card-head">
+              <div><h3>Mulai dari sini</h3><div class="card-sub">Workspace Anda masih kosong — tiga langkah singkat</div></div>
+              <div class="card-head-actions">${badgeHtml('Baru', 'brand', { icon: 'sparkles' })}</div>
+            </div>
+            <div class="grid grid-3 first-run-grid">
+              <button class="first-run-step" data-go="accounts" type="button">
+                ${iconTile('wallet', { color: 'var(--brand-500)', size: 38, radius: 12, iconSize: 19 })}
+                <span><b>1. Tambah akun</b><em>Rekening, e-wallet, atau uang tunai.</em></span>
+                ${icon('chevron-right', { size: 16 })}
+              </button>
+              <button class="first-run-step" data-quick="expense" type="button">
+                ${iconTile('trending-down', { color: 'var(--neg)', size: 38, radius: 12, iconSize: 19 })}
+                <span><b>2. Catat transaksi</b><em>Pengeluaran atau pemasukan pertama.</em></span>
+                ${icon('chevron-right', { size: 16 })}
+              </button>
+              <button class="first-run-step" data-quick="budget" type="button">
+                ${iconTile('target', { color: 'var(--accent)', size: 38, radius: 12, iconSize: 19 })}
+                <span><b>3. Buat budget</b><em>Batas pengeluaran per kategori.</em></span>
+                ${icon('chevron-right', { size: 16 })}
+              </button>
+            </div>
+          </section>
+        </div>` : ''}
 
         <div class="bento">
           <section class="card col-12 card-pad-sm quick-strip tint-brand">

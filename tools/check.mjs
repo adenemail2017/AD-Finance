@@ -324,6 +324,44 @@ const invariants = [
     hint: 'header hari sticky menimpa baris di dalam kotak bergulir; tanggal harus jadi label baris',
   },
   {
+    label: 'multi-pengguna: layar perkenalan mewajibkan nama sebelum workspace dibuat',
+    pass: /function renderOnboarding/.test(await readFile(join(ROOT, 'src/app.js'), 'utf8'))
+      && /data-onboard-name/.test(await readFile(join(ROOT, 'src/app.js'), 'utf8'))
+      && /needsUser: !resolved.onboarding_done \|\| resolved.name === DEFAULT_PROFILE.name/.test(await readFile(join(ROOT, 'src/services/store.js'), 'utf8'))
+      && /\.opt-card/.test(cssComponents),
+    hint: 'tanpa gerbang ini pengguna langsung memakai data contoh tanpa pernah mengisi nama',
+  },
+  {
+    label: 'pengguna baru mulai dari data kosong (kategori bawaan saja)',
+    pass: /export async function createUser\(\{ name, mode = 'empty' \} = \{\}\)/.test(await readFile(join(ROOT, 'src/services/store.js'), 'utf8'))
+      && /await idb.putMany\('categories', buildDefaultCategories\(profile.id\)\);/.test(await readFile(join(ROOT, 'src/services/store.js'), 'utf8'))
+      && /if \(mode === 'demo'\)/.test(await readFile(join(ROOT, 'src/services/store.js'), 'utf8')),
+    hint: 'default harus kosong; data contoh hanya bila pengguna memilihnya',
+  },
+  {
+    label: 'isolasi penyimpanan per pengguna (scope + stamp user_id + settings ber-prefix)',
+    pass: /export function setUserScope\(userId\)/.test(await readFile(join(ROOT, 'src/database/idb.js'), 'utf8'))
+      && /const SCOPED = new Set\(\['accounts'/.test(await readFile(join(ROOT, 'src/database/idb.js'), 'utf8'))
+      && /return rows.filter\(\(row\) => !row\.user_id \|\| row\.user_id === activeUserId\)/.test(await readFile(join(ROOT, 'src/database/idb.js'), 'utf8'))
+      && /key: `\$\{activeUserId\}:\$\{value\.key\}`/.test(await readFile(join(ROOT, 'src/database/idb.js'), 'utf8')),
+    hint: 'tanpa scope, pengguna kedua bisa membaca/menimpa baris pengguna pertama',
+  },
+  {
+    label: 'pengguna dapat berpindah, diganti nama, dan dihapus beserta datanya',
+    pass: /export async function switchUser\(userId\)/.test(await readFile(join(ROOT, 'src/services/store.js'), 'utf8'))
+      && /export async function purgeUser\(userId\)/.test(await readFile(join(ROOT, 'src/database/idb.js'), 'utf8'))
+      && /data-switch-user/.test(await readFile(join(ROOT, 'src/app.js'), 'utf8'))
+      && /data-user-card/.test(await readFile(join(ROOT, 'src/pages/settings.js'), 'utf8')),
+    hint: 'manajemen pengguna harus tersedia dari menu profil dan Settings',
+  },
+  {
+    label: 'workspace kosong menampilkan panduan tiga langkah',
+    pass: /const firstRun = state.accounts.length === 0 && state.transactions.length === 0/.test(await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8'))
+      && /data-first-run/.test(await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8'))
+      && /\.first-run-step/.test(cssComponents),
+    hint: 'pengguna baru butuh arah, bukan dashboard kosong tanpa penjelasan',
+  },
+  {
     label: 'Aksi Cepat beranda memakai rail chip (bukan kartu 8 ubin)',
     pass: /export function quickChipRail/.test(cardsJs)
       && /class="chip-rail" data-chip-rail/.test(cardsJs)

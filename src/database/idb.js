@@ -31,6 +31,33 @@ let dbPromise = null;
 let usingFallback = false;
 const memory = new Map();
 
+/* ------------------------------------------------------------------ */
+/* Isolasi data per pengguna                                           */
+/* ------------------------------------------------------------------ */
+
+/** Store yang isinya milik satu pengguna tertentu (semua kecuali registry). */
+const SCOPED = new Set(['accounts', 'transactions', 'categories', 'debts', 'debt_payments',
+  'receivables', 'receivable_payments', 'budgets', 'notifications', 'outbox', 'settings', 'users']);
+
+/** Store registry (daftar pengguna) — tidak pernah difilter per pengguna. */
+const REGISTRY = new Set(['profiles', 'meta']);
+
+let activeUserId = null;
+
+/** Tentukan pengguna aktif. Semua baca/tulis store ber-scope mengikuti ini. */
+export function setUserScope(userId) {
+  activeUserId = userId || null;
+}
+
+export function userScope() {
+  return activeUserId;
+}
+
+function isScoped(store) {
+  return SCOPED.has(store) && !REGISTRY.has(store);
+}
+
+
 function openDB() {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve, reject) => {
@@ -151,23 +178,41 @@ export function persistenceLabel() {
 
 export async function getAll(store) {
   const db = await openDB();
-  if (!db) return readFallback(store);
-  const objectStore = await tx(store, 'readonly');
-  return requestToPromise(objectStore.getAll());
+  const rows = db ? await requestToPromise((await tx(store, 'readonly')).getAll()) : readFallback(store);
+  if (!isScoped(store)) return rows;
+  if (store === 'settings') {
+    // key disimpan sebagai "<userId>:<key>" agar tiap pengguna punya setelan sendiri
+    const prefix = `${activeUserId}:`;
+    if (!activeUserId) return [];
+    return rows
+      .filter((row) => typeof row?.key === 'string' && row.key.startsWith(prefix))
+      .map((row) => ({ ...row, key: row.key.slice(prefix.length) }));
+  }
+  return rows.filter((row) => !row.user_id || row.user_id === activeUserId);
 }
 
 export async function get(store, key) {
+  const realKey = store === 'settings' ? `${activeUserId}:${key}` : key;
   const db = await openDB();
   if (!db) {
     const rows = readFallback(store);
     const keyPath = STORES[store];
-    return rows.find((r) => r[keyPath] === key) || null;
+    return rows.find((r) => r[keyPath] === realKey) || null;
   }
   const objectStore = await tx(store, 'readonly');
-  return requestToPromise(objectStore.get(key));
+  return requestToPromise(objectStore.get(realKey));
 }
 
 export async function put(store, value) {
+  const row = isScoped(store) && store !== 'settings'
+    ? { ...value, user_id: value.user_id || activeUserId || undefined }
+    : store === 'settings'
+      ? { ...value, key: `${activeUserId}:${value.key}` }
+      : value;
+  return putRaw(store, row);
+}
+
+async function putRaw(store, value) {
   const db = await openDB();
   if (!db) {
     const rows = readFallback(store);
@@ -183,6 +228,15 @@ export async function put(store, value) {
 }
 
 export async function putMany(store, values) {
+  const rows = values.map((value) => (isScoped(store) && store !== 'settings'
+    ? { ...value, user_id: value.user_id || activeUserId || undefined }
+    : store === 'settings'
+      ? { ...value, key: `${activeUserId}:${value.key}` }
+      : value));
+  return putManyRaw(store, rows);
+}
+
+async function putManyRaw(store, values) {
   if (!values.length) return values;
   const db = await openDB();
   if (!db) {
@@ -235,19 +289,74 @@ export async function removeMany(store, keys) {
   });
 }
 
+/**
+ * Kosongkan store HANYA untuk pengguna aktif (pengguna lain tidak tersentuh).
+ * Store registry (profiles/meta) dibersihkan seluruhnya hanya lewat purgeUser().
+ */
 export async function clearStore(store) {
-  const db = await openDB();
-  if (!db) {
-    writeFallback(store, []);
+  if (!isScoped(store) || store === 'settings') {
+    if (store === 'settings') {
+      const rows = await getAll('settings');
+      await removeMany('settings', rows.map((r) => r.key));
+      return true;
+    }
+    const db = await openDB();
+    if (!db) { writeFallback(store, []); return true; }
+    await requestToPromise((await tx(store, 'readwrite')).clear());
     return true;
   }
-  const objectStore = await tx(store, 'readwrite');
-  await requestToPromise(objectStore.clear());
+  const rows = await getAll(store);
+  await removeMany(store, rows.map((r) => r.id));
   return true;
 }
 
+/** "Hapus semua data" = data pengguna aktif saja; pengguna lain tetap utuh. */
 export async function clearAll() {
-  await Promise.all(Object.keys(STORES).map((s) => clearStore(s)));
+  await Promise.all([...SCOPED].filter((s) => s !== 'users').map((s) => clearStore(s)));
+  return true;
+}
+
+/* ------------------------------------------------------------------ */
+/* Registry pengguna (daftar akun di perangkat ini)                    */
+/* ------------------------------------------------------------------ */
+
+export async function listProfiles() {
+  const rows = await getAll('profiles');
+  return rows.sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')));
+}
+
+export async function saveProfile(profile) {
+  return put('profiles', profile);
+}
+
+export async function deleteProfile(id) {
+  return remove('profiles', id);
+}
+
+export async function getMeta(key, fallback = null) {
+  const row = await get('meta', key);
+  return row ? row.value : fallback;
+}
+
+export async function setMeta(key, value) {
+  return put('meta', { key, value });
+}
+
+/** Buang seluruh jejak satu pengguna (dipakai saat "Hapus pengguna"). */
+export async function purgeUser(userId) {
+  const stores = [...SCOPED];
+  for (const store of stores) {
+    const db = await openDB();
+    const rows = db ? await requestToPromise((await tx(store, 'readonly')).getAll()) : readFallback(store);
+    if (store === 'settings') {
+      await removeMany('settings', rows
+        .filter((r) => typeof r?.key === 'string' && r.key.startsWith(`${userId}:`))
+        .map((r) => r.key));
+    } else {
+      await removeMany(store, rows.filter((r) => r.user_id === userId).map((r) => r.id));
+    }
+  }
+  await remove('profiles', userId);
   return true;
 }
 

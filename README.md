@@ -140,6 +140,7 @@ Shortcut: `N` transaksi baru · `⌘/Ctrl + K` pencarian global · `1`–`8` nav
 
 ## 7. Keamanan
 
+- **Multi-pengguna** — perangkat baru menampilkan **layar perkenalan**: nama wajib diisi sebelum workspace dibuat, dan workspace baru **mulai dari nol** (0 akun, 0 transaksi — kategori bawaan tetap disiapkan; pilihan "isi dengan data contoh" tersedia bila diinginkan). Setiap pengguna punya akun, transaksi, kategori, budget, dan setelannya sendiri (`user_id` per baris + scope penyimpanan), diperiksa oleh uji isolasi, dan Pengaturan punya kartu **Pengguna** untuk tambah / ganti / ganti nama / hapus workspace. Perangkat yang sudah dipakai di versi lama tidak kehilangan data: layar perkenalan menyorot pilihan "Pertahankan data yang ada".
 - **Local-first**: data tidak pernah meninggalkan perangkat kecuali Anda mengonfigurasi endpoint sinkronisasi.
 - **PIN lock** — salted SHA-256 ×120 iterasi, PIN tidak pernah disimpan dalam bentuk asli, layar kunci menutup aplikasi.
 - **Nomor rekening ter-mask** (`•••• 7890`) secara default; API hanya mengirim nomor penuh bila diminta eksplisit dengan sesi sah.
@@ -153,10 +154,11 @@ Shortcut: `N` transaksi baru · `⌘/Ctrl + K` pencarian global · `1`–`8` nav
 | Perintah | Cakupan | Status |
 |---|---|---|
 | `npm test` | 23 test akuntansi/XLSX + 16 test API (dijalankan lewat `tools/run-tests.mjs` agar sama di Node 20 & 22) | **39/39 hijau** |
-| `npm run test:smoke` | 196 pemeriksaan DOM (boot, 7 rute, quick add, guard, detail, hutang, budget, pencarian, notifikasi, tema, ekspor, kategori, PIN, statement, **mode privasi saldo**, **beranda ringkas (rail akun, ringkasan bulanan, hutang-piutang)**, **bahasa visual 2.4**, tata letak Transaksi & Laporan) | **196/196 hijau** |
+| `npm run test:smoke` | 222 pemeriksaan DOM (boot, 7 rute, quick add, guard, detail, hutang, budget, pencarian, notifikasi, tema, ekspor, kategori, PIN, statement, mode privasi saldo, beranda ringkas, bahasa visual 2.5, tata letak Transaksi & Laporan, **gerbang perkenalan nama wajib**, **isolasi data antar pengguna**, **pindah/rename/hapus pengguna**) | **222/222 hijau** |
 | `node tests/sandbox.dom.mjs` | boot dengan semua API penyimpanan diblokir | **12/12 hijau** |
-| `npm run check` | import/export, precache SW vs disk, manifest, ikon, budget arsitektur, **30 invariant tata letak** | **hijau** |
+| `npm run check` | import/export, precache SW vs disk, manifest, ikon, budget arsitektur, **35 invariant** (termasuk 5 pemeriksa multi-pengguna) | **hijau** |
 | `npm run audit:layout -- <url>` | tata letak di browser sungguhan: 5 viewport × 5 halaman (scroll horizontal, elemen keluar tepi, konten terjepit) | **25/25 bersih** |
+| `npm run audit:multiuser -- <url>` | alur multi-pengguna di Chromium: wajib nama, mulai kosong, isolasi antar pengguna, kartu Pengguna, pindah/rename/hapus, **data perangkat lama tidak hilang** | **25/25 bersih** |
 
 Test menemukan bug nyata sepanjang pengerjaan — antara lain `scrollIntoView` yang mematikan form, handler pembayaran hutang yang crash karena field catatan tak ada, `%` negatif, bug PIN berubah yang dulu selalu menolak PIN lama yang benar, dan **`node --test tests/` yang tidak lagi menerima direktori di Node 22** (ditemukan CI dua-versi di GitHub Actions, diperbaiki lewat `tools/run-tests.mjs`).
 

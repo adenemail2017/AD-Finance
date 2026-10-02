@@ -151,6 +151,9 @@ blocked('indexedDB');
 console.log('\u001b[1mAD-Finance — blocked-storage boot test\u001b[0m\n');
 console.log('  storage APIs now throw on access (localStorage, sessionStorage, indexedDB)\n');
 await import(join(ROOT, 'src/app.js'));
+// Penyimpanan diblokir → tetap ada gerbang perkenalan; buat pengguna uji di memori.
+await waitFor(() => window.__pfos, { label: 'api siap', timeout: 12000 });
+if (window.__pfos.needsUser()) await window.__pfos.createUser({ name: 'Sesi Memori', mode: 'demo' });
 await waitFor(() => window.document.querySelector('#view .card'), { label: 'dashboard render', timeout: 12000 });
 const bootMs = Date.now() - t0;
 

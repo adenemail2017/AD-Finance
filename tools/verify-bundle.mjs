@@ -202,6 +202,9 @@ if (JSDOMClass) {
 
   const t0 = Date.now();
   await import(join(sim, 'src/app.js'));
+  await waitFor(() => window.__pfos, 'api siap');
+  // paket deploy diuji pada perangkat bersih → lewati gerbang perkenalan dengan pengguna uji
+  if (window.__pfos.needsUser()) await window.__pfos.createUser({ name: 'Paket Uji', mode: 'demo' });
   await waitFor(() => window.document.querySelector('#view .card'), 'dashboard');
   ok(`aplikasi boot dari paket deploy (${Date.now() - t0} ms) — dashboard render`);
 
