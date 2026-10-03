@@ -264,9 +264,17 @@ const invariants = [
     hint: 'satu kolom membuat nilai panjang (referensi/akun) melebarkan sheet hingga 445px',
   },
   {
-    label: 'tabel rekap padat memakai tiga kolom per baris',
-    pass: /\.table-stack\.is-dense tbody tr[^{]*\{[^}]*grid-template-columns:\s*repeat\(3/s.test(cssApp),
-    hint: '9 kolom rekap menjadi 5 baris tinggi bila tetap dua kolom',
+    label: 'tabel Rekap punya tata letak sendiri (kartu per bulan di ponsel)',
+    pass: /\.recap-table tbody tr, \.recap-table tfoot tr \{[^}]*grid-template-columns:\s*repeat\(2/s.test(cssApp)
+      && /\.recap-table td\.cell-title \{[^}]*grid-column: 1 \/ -1/s.test(cssApp)
+      && !/\.table-stack\.is-dense/.test(cssApp),
+    hint: 'aturan "3 kolom padat" lama membuat label dan nominal saling menimpa di ponsel',
+  },
+  {
+    label: 'tabel Rekap muat tanpa gulir samping di desktop',
+    pass: /table\.recap-table \{ min-width: 0; \}/.test(cssApp)
+      && /table\.recap-table td\.t-num, table\.recap-table tfoot td \{ font-size: 12\.5px; \}/.test(cssApp),
+    hint: 'sembilan kolom sebelumnya meluber ~94px sehingga kolom saldo akhir terpotong',
   },
   {
     label: 'menu Catat Cepat memakai ubin grid, scrim, dan bisa ditutup',

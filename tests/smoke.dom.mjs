@@ -855,6 +855,14 @@ check('month picker stays available on every tab', Boolean(qs('#view [data-perio
 
 click(qsa('#view [data-tab]').find((b) => b.dataset.tab === 'recap'));
 await waitFor(() => /Ending Balance/.test($('#view').textContent), { label: 'recap' });
+check('tabel Rekap memakai tata letak khusus dengan chip arus kas per bulan',
+  qsa('#view table.recap-table tbody tr').length > 0
+  && qsa('#view table.recap-table tbody tr .recap-net-chip').length === qsa('#view table.recap-table tbody tr').length
+  && qsa('#view table.recap-table thead th').length === 9,
+  `${qsa('#view table.recap-table thead th').length} kolom · ${qsa('#view table.recap-table tbody tr .recap-net-chip').length} chip`);
+check('kolom penentu (Net Cash Flow & Ending Balance) ditandai untuk seluler',
+  qsa('#view table.recap-table td.is-net').length === qsa('#view table.recap-table tbody tr').length
+  && qsa('#view table.recap-table td.is-ending').length === qsa('#view table.recap-table tbody tr').length);
 check('recap table carries ending balance and a totals row',
   /Ending Balance/.test($('#view table.data thead').textContent) && Boolean(qs('#view table.data tfoot tr')));
 check('recap renders trend charts', qsa('#view .chart-svg').length >= 2, `${qsa('#view .chart-svg').length} charts`);

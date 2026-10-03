@@ -15,7 +15,7 @@ Dikerjakan bertahap sesuai 12 fase yang diminta; setiap fase menjaga kompatibili
 | 9 | Budget & notifikasi | ✅ | budget per kategori, ambang 80%/100%, 6 jenis notifikasi turunan |
 | 10 | PWA & offline | ✅ | manifest, service worker 41 entri precache, outbox + auto-sync, install prompt, splash |
 | 11 | Auth & keamanan | ✅ | PIN lock (salted SHA-256 ×120), isolasi data per user di API + RLS, masking nomor rekening, **multi-pengguna: onboarding nama + nomor telepon, workspace kosong per pengguna** |
-| 12 | Testing · bugfix · performa | ✅ | 39 unit/integration + 228 smoke + 12 sandbox + 40 pemeriksa integritas + audit browser (layout & multiuser) |
+| 12 | Testing · bugfix · performa | ✅ | 39 unit/integration + 230 smoke + 12 sandbox + 42 pemeriksa integritas + audit browser (layout & multiuser) |
 
 ## Bug nyata yang ditemukan test dan sudah diperbaiki
 
@@ -272,6 +272,32 @@ Transaksi Terbaru · **Kekayaan Bersih (#7)** · Hutang & Piutang · Financial I
 
 **Bukti:** `preview/shots/urutan-desktop.png`, `preview/shots/urutan-mobile.png` · **Verifikasi:** 39 pemeriksa integritas,
 **228/228** smoke (bagian "Urutan beranda" baru), `audit:layout` hijau di 5 viewport.
+
+## Iterasi 9.3 — tabel Rekap Bulanan dirapikan (v2.5.4)
+
+**Laporan:** "Di halaman Laporan perbaiki UI Tabel Rekap karena tampilan uinya sangat berantakan."
+
+**Akar masalah (diukur, bukan diterka).** Tabel rekap punya 9 kolom, tetapi aturan lama memaksanya
+menjadi **grid 3 kolom dengan label tetap di dalam sel** (`grid-template-columns: repeat(3, …)` +
+`td { display:flex; justify-content:space-between }`). Label di kiri dan nominal di kanan, keduanya
+`nowrap` — pada lebar 390 px pasangan itu bertabrakan, sehingga terbaca seperti teks bertumpuk:
+`Juli 2026Income Rp 10.150.000Expense`. Di desktop pun tabel **meluber 94 px** sehingga kolom
+*Ending Balance* terpotong.
+
+| | Sebelum | Sesudah |
+|---|---|---|
+| Ponsel (<860 px) | 3 kolom, label & nominal dalam satu baris melawan lebar → tumpang-tindih | **satu kartu per bulan**: nama bulan + **chip arus kas** (hijau/merah) sebagai kepala, sisanya grid 2 kolom dengan label di atas nominal |
+| Kolom penentu | tersembunyi di baris ke-3 | **Net Cash Flow** & **Ending Balance** jadi panel ber-tint, langsung terbaca |
+| Total | baris footer padat | kartu **Total** dengan label tebal + warna pos/neg |
+| Desktop | min-width 640 px, luber 94 px, saldo akhir terpotong | `min-width: 0` + padding/ukuran angka disesuaikan → **muat 100 % (0 px gulir)** |
+| Keterbacaan desktop | semua kolom rata | garis zebra, kolom penentu ber-tint, kolom bulan *sticky*, kepala kolom 2 baris rapi |
+
+Aturan lama `.table-stack.is-dense` **dihapus dari design system** dan diganti kelas khusus
+`.recap-table` supaya tidak ada halaman lain yang mewarisi tata letak bermasalah itu.
+
+**Bukti terukur (Chromium, skrip `qa/shot-recap.mjs`):** sebelum — tumpang-tindih pada 5 baris & luber 94 px;
+sesudah — `jumlahTumpang: 0`, `gulirSamping: 0`, `selKeluarTepi: 0` di ponsel 390 px maupun desktop 1440 px.
+**Verifikasi:** 42 pemeriksa integritas, **230/230** smoke (2 pemeriksaan tabel rekap baru), `audit:layout` hijau 5 viewport.
 
 ## Prinsip untuk perubahan berikutnya
 

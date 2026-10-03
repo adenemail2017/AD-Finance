@@ -516,7 +516,7 @@ export const reportsPage = {
                 <div class="card-sub">Ending Balance = saldo seluruh akun pada akhir bulan (aset likuid), bukan net worth</div></div>
             </div>
             <div class="table-wrap is-plain">
-              <table class="data table-stack is-dense">
+              <table class="data table-stack recap-table">
                 <thead>
                   <tr>
                     <th>Bulan</th><th class="t-right">Income</th><th class="t-right">Expense</th>
@@ -527,27 +527,30 @@ export const reportsPage = {
                 </thead>
                 <tbody>
                   ${rows.map((row) => `<tr>
-                    <td data-label="Bulan" class="cell-title t-nowrap">${esc(formatMonth(row.month))}</td>
+                    <td data-label="Bulan" class="cell-title t-nowrap">
+                      <span>${esc(formatMonth(row.month))}</span>
+                      <span class="recap-net-chip ${row.net >= 0 ? 'is-pos' : 'is-neg'}">${esc(money(row.net))}</span>
+                    </td>
                     <td data-label="Income" class="t-right t-num t-pos">${esc(money(row.income))}</td>
                     <td data-label="Expense" class="t-right t-num t-neg">${esc(money(row.expense))}</td>
                     <td data-label="Investasi" class="t-right t-num">${esc(money(row.investment))}</td>
                     <td data-label="Dana Darurat" class="t-right t-num">${esc(money(row.emergency_fund))}</td>
                     <td data-label="Bayar Hutang" class="t-right t-num">${esc(money(row.debt_payment))}</td>
                     <td data-label="Terima Piutang" class="t-right t-num">${esc(money(row.receivable_payment))}</td>
-                    <td data-label="Net Cash Flow" class="t-right t-num t-bold ${row.net >= 0 ? 't-pos' : 't-neg'}">${esc(money(row.net))}</td>
-                    <td data-label="Ending Balance" class="t-right t-num t-bold">${esc(money(row.endingBalance))}</td>
+                    <td data-label="Net Cash Flow" class="t-right t-num t-bold is-net ${row.net >= 0 ? 't-pos' : 't-neg'}">${esc(money(row.net))}</td>
+                    <td data-label="Ending Balance" class="t-right t-num t-bold is-ending">${esc(money(row.endingBalance))}</td>
                   </tr>`).join('')}
                 </tbody>
                 <tfoot>
-                  <tr>
-                    <td data-label="Total" data-span="2" colspan="1">Total</td>
-                    <td data-label="Income" class="t-right">${esc(money(sums.income))}</td>
-                    <td data-label="Expense" class="t-right">${esc(money(sums.expense))}</td>
+                  <tr class="recap-total-row">
+                    <td data-label="Total" class="cell-title is-total-label">Total</td>
+                    <td data-label="Income" class="t-right t-pos">${esc(money(sums.income))}</td>
+                    <td data-label="Expense" class="t-right t-neg">${esc(money(sums.expense))}</td>
                     <td data-label="Investasi" class="t-right">${esc(money(sums.investment))}</td>
                     <td data-label="Dana Darurat" class="t-right">${esc(money(sums.emergency_fund))}</td>
                     <td data-label="Bayar Hutang" class="t-right">${esc(money(active.reduce((a, row) => a + row.debt_payment, 0)))}</td>
                     <td data-label="Terima Piutang" class="t-right">${esc(money(active.reduce((a, row) => a + row.receivable_payment, 0)))}</td>
-                    <td data-label="Net Cash Flow" class="t-right">${esc(money(sums.net))}</td>
+                    <td data-label="Net Cash Flow" class="t-right ${sums.net >= 0 ? 't-pos' : 't-neg'}">${esc(money(sums.net))}</td>
                     <td data-label="Ending Balance" class="t-right">${esc(money(last.endingBalance))}</td>
                   </tr>
                 </tfoot>
