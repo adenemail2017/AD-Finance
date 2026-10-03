@@ -1105,6 +1105,15 @@
 .account-card.is-mini .am-meta { font-size: var(--fs-2xs); color: var(--text-3); }
 .account-rail > .account-card.is-mini { flex: 0 0 auto; }
 
+/* --------------------- Saldo Akun di baris pertama beranda ---------------- */
+/* Kartu ini berdampingan dengan kartu saldo ATM yang tinggi, jadi isinya
+   ditata: rail ditengahkan secara vertikal, kaki total menempel di bawah. */
+.card[data-account-rail-card] { display: flex; flex-direction: column; }
+.card[data-account-rail-card] > .card-head { flex: none; }
+.card[data-account-rail-card] > .rail-wrap { flex: 1; display: flex; align-items: center; }
+.card[data-account-rail-card] > .rail-wrap > .rail { width: 100%; }
+.card[data-account-rail-card] > .rail-foot { margin-top: auto; }
+
 /* --------------------- Hutang & Piutang dalam satu kartu ------------------ */
 .pair-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-3); }
 .pair-row {

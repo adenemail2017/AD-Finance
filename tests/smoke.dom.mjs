@@ -863,6 +863,20 @@ check('recap ends with a sectioned trend block', /Tren/.test($('#view').textCont
 window.__pfos.navigate('transactions');
 await waitFor(() => $('#view .tool-card'), { label: 'transactions again' });
 
+section('Urutan beranda');
+{
+  window.__pfos.navigate('dashboard');
+  window.__pfos.rerender();
+  await sleep(200);
+  const judul = Array.from(document.querySelectorAll('#view .card h3')).map((h) => h.textContent.trim());
+  const iSaldo = judul.indexOf('Saldo Akun');
+  const iNet = judul.indexOf('Kekayaan Bersih');
+  check('kartu Saldo Akun muncul sebelum Kekayaan Bersih', iSaldo > -1 && iNet > -1 && iSaldo < iNet,
+    `saldo #${iSaldo + 1} · networth #${iNet + 1}`);
+  const railWrap = document.querySelector('#view [data-account-rail-card] .rail-wrap');
+  check('rail saldo akun di baris pertama tetap bisa digeser', Boolean(railWrap) && Boolean(railWrap.querySelector('[data-rail]')));
+}
+
 /* ------------------------------------------------------------------ */
 /* Isolasi data antar pengguna                                         */
 /* ------------------------------------------------------------------ */

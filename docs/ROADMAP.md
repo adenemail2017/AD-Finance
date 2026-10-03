@@ -15,7 +15,7 @@ Dikerjakan bertahap sesuai 12 fase yang diminta; setiap fase menjaga kompatibili
 | 9 | Budget & notifikasi | ✅ | budget per kategori, ambang 80%/100%, 6 jenis notifikasi turunan |
 | 10 | PWA & offline | ✅ | manifest, service worker 41 entri precache, outbox + auto-sync, install prompt, splash |
 | 11 | Auth & keamanan | ✅ | PIN lock (salted SHA-256 ×120), isolasi data per user di API + RLS, masking nomor rekening, **multi-pengguna: onboarding nama + nomor telepon, workspace kosong per pengguna** |
-| 12 | Testing · bugfix · performa | ✅ | 39 unit/integration + 225 smoke + 12 sandbox + 37 pemeriksa integritas + audit browser (layout & multiuser) |
+| 12 | Testing · bugfix · performa | ✅ | 39 unit/integration + 227 smoke + 12 sandbox + 39 pemeriksa integritas + audit browser (layout & multiuser) |
 
 ## Bug nyata yang ditemukan test dan sudah diperbaiki
 
@@ -256,6 +256,22 @@ untuk keperluan pengujian, bukan lagi pilihan di layar pengguna.
 
 **Bukti:** `preview/multi-pengguna-2.5.1.png` · **Verifikasi:** 37 pemeriksa integritas, **225/225** smoke,
 `audit:multiuser` **26/26** (termasuk penolakan nomor telepon salah + skenario perangkat lama).
+
+## Iterasi 9.2 — Saldo Akun di atas Kekayaan Bersih (v2.5.2)
+
+**Permintaan:** "Saya mau tampilan Saldo akun ada di atas tampilan Kekayaan Bersih."
+
+| Sebelum | Sesudah |
+|---|---|
+| Baris 1: kartu saldo ATM (span 7) + **Kekayaan Bersih** (span 5) | Baris 1: kartu saldo ATM (span 7) + **Saldo Akun** (span 5) |
+| Saldo Akun ada di baris ke-5 bersama Hutang & Piutang | Kekayaan Bersih pindah ke baris Hutang & Piutang (span 7 + span 5) |
+| Kartu Saldo Akun setinggi rail-nya saja | Isi kartu ditata: rail **ditengahkan vertikal**, kaki "Total saldo aktif" menempel di dasar — tidak ada ruang kosong menggantung di sebelah kartu ATM |
+
+Urutan tangkapan di ponsel kini: Saldo Akun (#1) · Aksi Cepat · Ringkasan Bulan Ini · Arus Kas · Kesehatan Budget ·
+Transaksi Terbaru · **Kekayaan Bersih (#7)** · Hutang & Piutang · Financial Insights.
+
+**Bukti:** `preview/shots/urutan-desktop.png`, `preview/shots/urutan-mobile.png` · **Verifikasi:** 39 pemeriksa integritas,
+**227/227** smoke (bagian "Urutan beranda" baru), `audit:layout` hijau di 5 viewport.
 
 ## Prinsip untuk perubahan berikutnya
 

@@ -376,6 +376,21 @@ const invariants = [
     hint: 'pengguna baru butuh arah, bukan dashboard kosong tanpa penjelasan',
   },
   {
+    label: 'beranda: kartu Saldo Akun tampil di atas kartu Kekayaan Bersih',
+    // urutan di markup render: kartu ATM → Saldo Akun → Kekayaan Bersih
+    pass: (await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8')).indexOf('${heroCard({')
+      < (await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8')).indexOf('data-account-rail-card')
+      && (await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8')).indexOf('data-account-rail-card')
+      < (await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8')).indexOf('${netWorthCard(state, { masked: hide })}'),
+    hint: 'pengguna meminta ringkasan saldo per akun lebih dulu daripada kekayaan bersih',
+  },
+  {
+    label: 'kartu Saldo Akun di baris pertama tetap rapi (rail ditengahkan, total di dasar)',
+    pass: /\.card\[data-account-rail-card\] > \.rail-wrap \{ flex: 1; display: flex; align-items: center; \}/.test(cssComponents)
+      && /\.card\[data-account-rail-card\] > \.rail-foot \{ margin-top: auto; \}/.test(cssComponents),
+    hint: 'tanpa ini kartu tinggi menyisakan ruang kosong di bawah rail',
+  },
+  {
     label: 'Aksi Cepat beranda memakai rail chip (bukan kartu 8 ubin)',
     pass: /export function quickChipRail/.test(cardsJs)
       && /class="chip-rail" data-chip-rail/.test(cardsJs)

@@ -121,7 +121,7 @@ function netWorthCard(state, { masked = false } = {}) {
     { label: 'Dana Darurat', value: Math.max(0, assets.emergency_fund), color: '#0d9488' },
   ];
   const total = segs.reduce((acc, s) => acc + s.value, 0) || 1;
-  return `<section class="card col-5">
+  return `<section class="card col-7" data-networth-card>
     <div class="card-head">
       <div>
         <h3>Kekayaan Bersih</h3>
@@ -215,7 +215,25 @@ export const dashboardPage = {
     since: String(new Date(state.profile.created_at || Date.now()).getFullYear()),
     hideBalance: hide,
   })}
-          ${netWorthCard(state, { masked: hide })}
+          <section class="card col-5 tint-brand" data-account-rail-card>
+            <div class="card-head">
+              <div><h3>Saldo Akun</h3><div class="card-sub">${accountsActive.length} akun terhubung</div></div>
+              <div class="card-head-actions"><button class="btn btn-sm btn-outline" data-go="accounts">Kelola akun ${icon('chevron-right', { size: 14 })}</button></div>
+            </div>
+            ${accountRail({
+    masked: hide,
+    accounts: accountsActive.map((row) => ({
+      account: row.account,
+      balance: row.balance,
+      meta: row.lastActivity ? `${row.lastActivity.slice(8, 10)}/${row.lastActivity.slice(5, 7)}` : '',
+    })),
+  })}
+            ${railFoot({
+    label: 'Total saldo aktif',
+    value: hide ? MASK : money(totalAktif),
+    hint: 'Geser kartu ke samping untuk melihat semua akun',
+  })}
+          </section>
         </div>
 
         ${firstRun ? `<div class="bento">
@@ -321,26 +339,7 @@ export const dashboardPage = {
         </div>
 
         <div class="bento">
-          <section class="card col-7 tint-brand">
-            <div class="card-head">
-              <div><h3>Saldo Akun</h3><div class="card-sub">${accountsActive.length} akun terhubung</div></div>
-              <div class="card-head-actions"><button class="btn btn-sm btn-outline" data-go="accounts">Kelola akun ${icon('chevron-right', { size: 14 })}</button></div>
-            </div>
-            ${accountRail({
-    masked: hide,
-    accounts: accountsActive.map((row) => ({
-      account: row.account,
-      balance: row.balance,
-      meta: row.lastActivity ? `${row.lastActivity.slice(8, 10)}/${row.lastActivity.slice(5, 7)}` : '',
-    })),
-  })}
-            ${railFoot({
-    label: 'Total saldo aktif',
-    value: hide ? MASK : money(totalAktif),
-    hint: 'Geser kartu ke samping untuk melihat semua akun',
-  })}
-          </section>
-
+          ${netWorthCard(state, { masked: hide })}
           <section class="card col-5 tint-warn">
             <div class="card-head">
               <div><h3>Hutang &amp; Piutang</h3><div class="card-sub">${openDebts.length + openRec.length} catatan aktif</div></div>
