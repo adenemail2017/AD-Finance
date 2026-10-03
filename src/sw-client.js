@@ -4,7 +4,7 @@
  */
 
 export const SW_URL = new URL('../sw.js', import.meta.url).pathname.replace(/\/src\/sw-client\.js.*$/, '/sw.js');
-export const APP_VERSION = '2.5.2';
+export const APP_VERSION = '2.5.3';
 
 let registration = null;
 

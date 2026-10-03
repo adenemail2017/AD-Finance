@@ -896,6 +896,7 @@ check('pengguna baru mulai dengan data kosong (0 akun, 0 transaksi)',
 check('kategori bawaan tetap tersedia untuk mulai mencatat',
   window.__pfos.getState().categories.length > 0, `${window.__pfos.getState().categories.length} kategori`);
 check('dua pengguna tercatat di registry', window.__pfos.getState().users.length === 2);
+check('layar perkenalan tidak tertinggal menutupi shell', !q('.onboarding') && Boolean(q('#view .card')));
 check('lapisan penyimpanan hanya mengembalikan baris milik pengguna aktif',
   (await idbMod.getAll('transactions')).length === 0,
   `${(await idbMod.getAll('transactions')).length} baris terlihat`);

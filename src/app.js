@@ -841,9 +841,13 @@ async function boot() {
   // Perkenalan: setiap pengguna wajib mengisi nama sebelum aplikasi dibuka,
   // dan memulai dengan workspace kosong miliknya sendiri.
   if (store.state.needsUser) {
+    // Perkenalan bisa selesai lewat tombol (wrapper dihapus di renderOnboarding)
+    // atau lewat jalur lain (mis. tambah pengguna program) — pastikan layarnya
+    // selalu dibersihkan sebelum shell berdiri.
     const stop = store.subscribe((next) => {
       if (next.needsUser) return;
       stop();
+      document.querySelector('.onboarding')?.remove();
       startShell();
     });
     renderOnboarding(() => startShell());
@@ -1087,6 +1091,7 @@ let shellStarted = false;
 function startShell() {
   if (shellStarted) return;
   shellStarted = true;
+  document.querySelector('.onboarding')?.remove(); // jaga-jaga: gerbang tidak boleh menutupi shell
   renderShell();
   dismissSplash();
 

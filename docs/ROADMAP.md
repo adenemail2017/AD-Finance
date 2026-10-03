@@ -15,7 +15,7 @@ Dikerjakan bertahap sesuai 12 fase yang diminta; setiap fase menjaga kompatibili
 | 9 | Budget & notifikasi | ✅ | budget per kategori, ambang 80%/100%, 6 jenis notifikasi turunan |
 | 10 | PWA & offline | ✅ | manifest, service worker 41 entri precache, outbox + auto-sync, install prompt, splash |
 | 11 | Auth & keamanan | ✅ | PIN lock (salted SHA-256 ×120), isolasi data per user di API + RLS, masking nomor rekening, **multi-pengguna: onboarding nama + nomor telepon, workspace kosong per pengguna** |
-| 12 | Testing · bugfix · performa | ✅ | 39 unit/integration + 227 smoke + 12 sandbox + 39 pemeriksa integritas + audit browser (layout & multiuser) |
+| 12 | Testing · bugfix · performa | ✅ | 39 unit/integration + 228 smoke + 12 sandbox + 40 pemeriksa integritas + audit browser (layout & multiuser) |
 
 ## Bug nyata yang ditemukan test dan sudah diperbaiki
 
@@ -271,7 +271,7 @@ Urutan tangkapan di ponsel kini: Saldo Akun (#1) · Aksi Cepat · Ringkasan Bula
 Transaksi Terbaru · **Kekayaan Bersih (#7)** · Hutang & Piutang · Financial Insights.
 
 **Bukti:** `preview/shots/urutan-desktop.png`, `preview/shots/urutan-mobile.png` · **Verifikasi:** 39 pemeriksa integritas,
-**227/227** smoke (bagian "Urutan beranda" baru), `audit:layout` hijau di 5 viewport.
+**228/228** smoke (bagian "Urutan beranda" baru), `audit:layout` hijau di 5 viewport.
 
 ## Prinsip untuk perubahan berikutnya
 

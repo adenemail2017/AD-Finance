@@ -154,9 +154,9 @@ Shortcut: `N` transaksi baru · `⌘/Ctrl + K` pencarian global · `1`–`8` nav
 | Perintah | Cakupan | Status |
 |---|---|---|
 | `npm test` | 23 test akuntansi/XLSX + 16 test API (dijalankan lewat `tools/run-tests.mjs` agar sama di Node 20 & 22) | **39/39 hijau** |
-| `npm run test:smoke` | 227 pemeriksaan DOM (boot, 7 rute, quick add, guard, detail, hutang, budget, pencarian, notifikasi, tema, ekspor, kategori, PIN, statement, mode privasi saldo, beranda ringkas, bahasa visual 2.5, tata letak Transaksi & Laporan, **gerbang perkenalan nama + nomor telepon**, **isolasi data antar pengguna**, **pindah/rename/hapus pengguna**) | **227/227 hijau** |
+| `npm run test:smoke` | 228 pemeriksaan DOM (boot, 7 rute, quick add, guard, detail, hutang, budget, pencarian, notifikasi, tema, ekspor, kategori, PIN, statement, mode privasi saldo, beranda ringkas, bahasa visual 2.5, tata letak Transaksi & Laporan, **gerbang perkenalan nama + nomor telepon**, **isolasi data antar pengguna**, **pindah/rename/hapus pengguna**) | **228/228 hijau** |
 | `node tests/sandbox.dom.mjs` | boot dengan semua API penyimpanan diblokir | **12/12 hijau** |
-| `npm run check` | import/export, precache SW vs disk, manifest, ikon, budget arsitektur, **39 invariant** (termasuk 6 pemeriksa multi-pengguna + urutan beranda) | **hijau** |
+| `npm run check` | import/export, precache SW vs disk, manifest, ikon, budget arsitektur, **40 invariant** (termasuk 6 pemeriksa multi-pengguna + urutan beranda) | **hijau** |
 | `npm run audit:layout -- <url>` | tata letak di browser sungguhan: 5 viewport × 5 halaman (scroll horizontal, elemen keluar tepi, konten terjepit) | **25/25 bersih** |
 | `npm run audit:multiuser -- <url>` | alur multi-pengguna di Chromium: wajib isi nama + nomor telepon, mulai kosong, isolasi antar pengguna, kartu Pengguna, pindah/rename/hapus, **data perangkat lama tidak hilang** | **26/26 bersih** |
 

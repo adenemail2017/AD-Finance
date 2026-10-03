@@ -376,6 +376,11 @@ const invariants = [
     hint: 'pengguna baru butuh arah, bukan dashboard kosong tanpa penjelasan',
   },
   {
+    label: 'layar perkenalan selalu dibersihkan sebelum shell berdiri',
+    pass: (await readFile(join(ROOT, 'src/app.js'), 'utf8')).match(/document\.querySelector\('\.onboarding'\)\?\.remove\(\)/g)?.length >= 2,
+    hint: 'kalau gerbang tertinggal, dashboard tertutup overlay tanpa jalan keluar',
+  },
+  {
     label: 'beranda: kartu Saldo Akun tampil di atas kartu Kekayaan Bersih',
     // urutan di markup render: kartu ATM → Saldo Akun → Kekayaan Bersih
     pass: (await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8')).indexOf('${heroCard({')

@@ -1,6 +1,6 @@
 {
   "name": "ad-finance",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "private": true,
   "type": "module",
   "description": "AD-Finance — offline-first PWA for personal income, expenses, transfers, debts, receivables, statements, reports and analytics. Zero runtime dependencies.",
