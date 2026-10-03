@@ -471,7 +471,8 @@ window.__pfos.navigate('debts');
 await waitFor(() => $('#view .debt-card'), { label: 'debts list' });
 click($('#view [data-pay-debt]'));
 await waitFor(() => $('.sheet [data-pay]'), { label: 'pay sheet' });
-check('payment sheet gives live saldo feedback chips', $$('.sheet [data-fill]').length === 2);
+check('payment sheet gives live saldo feedback chips', $$('.sheet [data-fill]').length >= 2,
+  `${$$('.sheet [data-fill]').length} chip`);
 setValue($('.sheet [data-account]'), payable.debt.account_id);
 setValue($('.sheet [data-amount]'), payAmount.toLocaleString('id-ID'));
 click($('.sheet [data-pay]'));
@@ -515,6 +516,63 @@ check('hero hutang memuat total, terbayar, dan jatuh tempo',
 check('label & nilai popup tetap dua kolom (.kv-tight)', Boolean($('.overlay .kv.kv-tight')));
 click($('.overlay [data-close]'));
 await sleep(80);
+
+section('Hutang berbunga otomatis (v2.5.6)');
+window.__pfos.navigate('debts');
+await waitFor(() => $('#view [data-new-debt]'), { label: 'halaman hutang' });
+const debtsBefore = state.debts.length;
+click($('#view [data-new-debt]'));
+await waitFor(() => $('.sheet [data-debt-calc]'), { label: 'form hutang' });
+setValue($('.sheet [data-party]'), 'Koperasi Bunga');
+setValue($('.sheet [data-amount]'), '8.000.000');
+setValue($('.sheet [data-total]'), '13.000.000');
+await sleep(60);
+const calcHalf = ($('.sheet [data-debt-calc]')?.textContent || '').replace(/\s+/g, ' ');
+check('form hutang meminta pokok, total pelunasan, dan cicilan',
+  Boolean($('.sheet [data-total]')) && Boolean($('.sheet [data-installment]')));
+check('bunga otomatis dihitung dari pokok vs total pelunasan',
+  /62[.,]5\s*%/.test(calcHalf) && /5\.000\.000/.test(calcHalf), calcHalf.slice(0, 120));
+setValue($('.sheet [data-installment]'), '1.153.334');
+await sleep(60);
+const calcFull = ($('.sheet [data-debt-calc]')?.textContent || '').replace(/\s+/g, ' ');
+check('tenor dihitung dari total pelunasan / cicilan (12 angsuran)', /12 bulan/.test(calcFull), calcFull.slice(0, 160));
+check('bunga flat dan efektif ditampilkan terpisah',
+  /Bunga flat/.test(calcFull) && /Bunga efektif/.test(calcFull) && /5[.,]54%\/bln/.test(calcFull), calcFull.slice(0, 200));
+click($('.sheet [data-save]'));
+await waitFor(() => !doc.querySelector('.overlay'), { label: 'form hutang tersimpan' });
+check('hutang tersimpan', state.debts.length === debtsBefore + 1, `${debtsBefore} → ${state.debts.length}`);
+const newDebt = state.debts[state.debts.length - 1];
+const newInfo = finance.debtState(newDebt, state.debtPayments);
+check('kewajiban = total pelunasan (bukan pokok)', newInfo.obligation === 13_000_000 && newInfo.remaining === 13_000_000,
+  `obligation ${newInfo.obligation}`);
+check('bunga tersimpan sebagai turunan (62,5 %)', newInfo.terms.interestPct === 62.5 && newInfo.terms.interest === 5_000_000);
+check('masuk akun hanya sebesar pokok', state.transactions.some((t) => t.reference_id === newDebt.id && t.amount === 8_000_000));
+const newCard = $$('#view [data-debt-card]').find((c) => c.textContent.includes('Koperasi Bunga'));
+check('kartu hutang menyebut total pelunasan', /Total Pelunasan/.test(newCard?.textContent || '')
+  && /13\.000\.000/.test(newCard?.textContent || ''), newCard?.textContent.replace(/\s+/g, ' ').slice(0, 90));
+check('kartu hutang menampilkan pill bunga & cicilan',
+  /Bunga 62[.,]5%/.test(newCard?.textContent || '') && /1\.2 jt\/bln/.test(newCard?.textContent || ''),
+  (newCard?.querySelector('.debt-interest')?.textContent || '').replace(/\s+/g, ' ').slice(0, 120));
+click(newCard);
+await waitFor(() => $('.overlay [data-debt-interest-card]'), { label: 'detail hutang' });
+const detailText = ($('.overlay .sheet')?.textContent || '').replace(/\s+/g, ' ');
+check('detail hutang memuat pokok & total pelunasan terpisah',
+  /Pokok/.test(detailText) && /Total Pelunasan/.test(detailText), detailText.slice(0, 120));
+check('detail hutang memuat baris bunga + sisa angsuran',
+  /Bunga/.test(detailText) && /62[.,]5%/.test(detailText) && /sisa 12×/.test(detailText), detailText.slice(0, 160));
+click($('.overlay [data-pay]'));
+await waitFor(() => $('.sheet [data-fill="installment"]'), { label: 'sheet bayar' });
+check('nominal pembayaran default = cicilan bulanan', $('.sheet [data-amount]')?.value === '1.153.334',
+  $('.sheet [data-amount]')?.value);
+check('chip cicilan tersedia di sheet pembayaran', /Cicilan \(Rp 1\.2 jt\)/.test($('.sheet [data-fill="installment"]')?.textContent || ''),
+  $('.sheet [data-fill="installment"]')?.textContent.trim());
+setValue($('.sheet [data-amount]'), '1.153.334');
+click($('.sheet [data-pay]'));
+await waitFor(() => !doc.querySelector('.overlay'), { label: 'pembayaran cicilan' });
+const afterPay = finance.debtState(state.debts.find((d) => d.id === newDebt.id), state.debtPayments);
+check('sisa hutang = kewajiban − cicilan', afterPay.remaining === 13_000_000 - 1_153_334, `sisa ${afterPay.remaining}`);
+check('sisa angsuran berkurang jadi 11 kali', afterPay.monthsLeft === 11, `${afterPay.monthsLeft}×`);
+
 window.__pfos.navigate('accounts');
 await waitFor(() => $('[data-account-card]'), { label: 'halaman akun' });
 click($('[data-account-card]'));

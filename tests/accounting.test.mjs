@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { buildDemoDataset, buildDefaultCategories } from '../src/database/seed.js';
 import {
   accountBalance, accountBalanceAt, balanceMap, buildStatement, budgetUsage, categoryBreakdown,
-  debtState, insights, monthlySeries, netWorth, periodTotals, receivableState, totalBalance,
+  debtInterest, debtState, insights, monthlySeries, netWorth, periodTotals, receivableState, totalBalance,
 } from '../src/services/finance.js';
 import {
   TRANSACTION_TYPES, accountDelta, makeTransaction, transactionFingerprint, isIncome, isExpense,
@@ -192,6 +192,55 @@ test('debt/пayment state derives paid, remaining, progress and status', () => {
   assert.equal(settled.status, 'paid');
   assert.equal(settled.remaining, 0);
   assert.equal(settled.progress, 100);
+});
+
+test('bunga hutang dihitung otomatis dari pokok, total pelunasan, dan cicilan', () => {
+  // kasus nyata pengguna: pinjam 8 jt, harus dilunasi 13 jt, cicilan 1.153.334
+  const t = debtInterest({ principal: 8_000_000, total_repayment: 13_000_000, monthly_installment: 1_153_334 });
+  assert.equal(t.interest, 5_000_000);
+  assert.equal(t.interestPct, 62.5);
+  assert.equal(t.obligation, 13_000_000);
+  assert.equal(t.tenorMonths, 12);          // 13.000.000 / 1.153.334 = 11,27 → 12 angsuran
+  assert.equal(Math.round(t.tenor), 11);
+  assert.equal(t.flatMonthly.toFixed(2), '5.54');   // 62,5 % / 11,27 bulan
+  assert.equal(t.flatAnnual.toFixed(1), '66.5');
+  assert.ok(t.effectiveMonthly > t.flatMonthly, 'bunga efektif selalu lebih tinggi dari flat');
+  assert.equal(t.effectiveMonthly.toFixed(2), '8.90');
+
+  // tanpa bunga: kewajiban = pokok
+  const plain = debtInterest({ principal: 2_000_000 });
+  assert.equal(plain.hasInterest, false);
+  assert.equal(plain.obligation, 2_000_000);
+  assert.equal(plain.interestPct, 0);
+
+  // cicilan belum diisi → tenor diperkirakan dari tanggal hutang & jatuh tempo
+  const byDate = debtInterest({
+    principal: 8_000_000, total_repayment: 13_000_000,
+    start_date: addDays(todayISO(), -300), due_date: todayISO(),
+  });
+  assert.equal(byDate.tenorSource, 'dates');
+  assert.ok(byDate.tenorMonths >= 9 && byDate.tenorMonths <= 11, `tenor ${byDate.tenorMonths}`);
+  assert.ok(byDate.installment > 0);
+});
+
+test('sisa & progress hutang mengikuti total pelunasan, bukan hanya pokok', () => {
+  const debt = {
+    id: 'd-int', counterparty: 'Koperasi', principal: 8_000_000, total_repayment: 13_000_000,
+    monthly_installment: 1_153_334, start_date: addDays(todayISO(), -60), due_date: addDays(todayISO(), 300),
+  };
+  const unpaid = debtState(debt, []);
+  assert.equal(unpaid.obligation, 13_000_000);
+  assert.equal(unpaid.remaining, 13_000_000);
+  assert.equal(unpaid.monthsLeft, 12);
+
+  const half = debtState(debt, [{ id: 'p', debt_id: 'd-int', amount: 6_500_000, date: todayISO() }]);
+  assert.equal(half.remaining, 6_500_000);
+  assert.equal(Math.round(half.progress), 50);
+  assert.equal(half.monthsLeft, 6);
+
+  const paid = debtState(debt, [{ id: 'p2', debt_id: 'd-int', amount: 13_000_000, date: todayISO() }]);
+  assert.equal(paid.remaining, 0);
+  assert.equal(paid.status, 'paid');
 });
 
 test('receivable state mirrors debt semantics', () => {

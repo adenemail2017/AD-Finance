@@ -237,7 +237,7 @@ export const analyticsPage = {
                 ${debtList(state, { status: 'all' }).slice(0, 5).map(({ debt, info }) => `<div class="stack-2">
                   <div class="row-between t-xs">
                     <span class="t-semibold t-clip">${esc(debt.counterparty)}</span>
-                    <span class="t-dim">${esc(money(info.paid))} / ${esc(money(info.principal))} · ${info.progress.toFixed(0)}%</span>
+                    <span class="t-dim">${esc(money(info.paid))} / ${esc(money(info.obligation))} · ${info.progress.toFixed(0)}%</span>
                   </div>
                   ${progressHtml(info.progress, { tone: info.remaining <= 0 ? 'pos' : info.isOverdue ? 'neg' : 'warn' })}
                 </div>`).join('') || '<div class="t-xs t-dim">Belum ada data hutang.</div>'}

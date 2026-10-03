@@ -337,6 +337,33 @@ Dua bug kecil lain: cincin 100 % menganga karena jeda antar segmen (kini satu se
 **Verifikasi:** 46 pemeriksa integritas (4 baru), **240/240** smoke (10 pemeriksaan diagram donat baru),
 39 unit, 12 sandbox, `audit:layout` hijau 5 viewport. **Bukti:** `preview/donat-beranda-2.5.5.png`.
 
+## Iterasi 9.5 — bunga otomatis per hutang (v2.5.6)
+
+**Permintaan:** "misal saya punya hutang dengan pinjaman Rp 8.000.000 tetapi saya harus melunaskannya Rp 13.000.000
+dengan cicilan per bulan Rp 1.153.334 … tambahkan hitungan otomatis bunga dari setiap hutangnya berapa persen".
+
+| Aspek | Keputusan |
+|---|---|
+| Data baru | `debts.total_repayment` (total pelunasan) + `debts.monthly_installment` (cicilan per bulan); `principal` tetap = uang yang diterima |
+| Kewajiban | `debtState().obligation` = total pelunasan bila diisi, selain itu pokok — **Sisa & Progress kini mengikuti kewajiban**, bukan hanya pokok |
+| Bunga otomatis | `debtInterest()` di `services/finance.js` menurunkan **bunga total (Rp & %), tenor, bunga flat/bulan & /tahun, bunga efektif/bulan & /tahun** setiap kali dibutuhkan (tidak disimpan, tidak bisa basi) |
+| Tenor | dari `total ÷ cicilan` (13.000.000 ÷ 1.153.334 = 11,27 → **12 angsuran**); bila cicilan kosong, diperkirakan dari rentang tanggal hutang → jatuh tempo |
+| Bunga efektif | IRR jadwal cicilan dihitung dengan **bisection 80 iterasi** (deterministik, tanpa dependensi): 8,90 %/bulan ≈ 178 %/tahun untuk contoh di atas |
+| Form | tiga kolom nominal + panel **Bunga otomatis** yang hidup saat mengetik (validasi: total pelunasan < pokok ditolak) |
+| Kartu hutang | label berubah jadi **"Total (pokok + bunga)"**, plus pill *Bunga 62.5% · Rp 5 jt*, *Rp 1.2 jt/bln · 12× · sisa 12×*, *Efektif 178.1%/thn* |
+| Detail | hero 5 sel (pokok, total pelunasan, dibayar, sisa, jatuh tempo) + kartu rincian bunga + baris `kv` Bunga & Cicilan |
+| Pembayaran | nominal default = **cicilan bulanan** (1.153.334) + chip "Cicilan" di samping "Lunasi sisa" / "+Rp …" |
+| Konsistensi | kekayaan bersih (shell, laporan, tren 30 hari), ringkasan Akun, progress Analytics, dan notifikasi jatuh tempo kini memakai **kewajiban (pokok + bunga)**; hanya **pokok** yang masuk ke saldo akun saat hutang dicatat |
+
+**Catatan akuntansi (disengaja).** Karena transaksi pencatatan hutang hanya mengkredit akun sebesar pokok, sedangkan
+liabilitas diakui sebesar kewajiban, net worth **turun sebesar bunga di hari pencatatan** — persis seperti kredit
+bunga flat di dunia nyata: begitu akad ditandatangani, seluruh kewajiban sudah menjadi beban. Alternatifnya
+(bunga diakui bertahap) akan membuat kartu "Total Hutang Aktif" tidak sama dengan angka liabilitas di beranda.
+
+**Verifikasi:** 50 pemeriksa integritas (4 baru), **256/256** smoke (16 pemeriksaan bunga hutang baru),
+41 unit (2 tes baru: rumus bunga + sisa/progress berbasis kewajiban), 12 sandbox, `audit:layout` hijau 5 viewport.
+**Bukti:** `preview/hutang-bunga-2.5.6.png` + `qa/cek-bunga-hutang.mjs`.
+
 ## Prinsip untuk perubahan berikutnya
 
 1. Jangan rusak invarian akuntansi (`docs/ACCOUNTING.md`).

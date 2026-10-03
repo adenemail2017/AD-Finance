@@ -471,6 +471,90 @@ export function spendingHeatmap(db = db0(), key = monthKey()) {
 /* Debt & receivable state                                             */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Bunga efektif per bulan (IRR) dari jadwal cicilan:
+ * pokok = Σ cicilan / (1+i)^k  →  dicari dengan bisection (deterministik).
+ * Cicilan terakhir dianggap sisa pembulatan (lebih kecil).
+ */
+function effectiveMonthlyRate(principal, installment, total) {
+  if (!(principal > 0) || !(installment > 0) || !(total > principal)) return 0;
+  const full = Math.floor(total / installment + 1e-9);
+  if (full < 1) return 0;
+  const last = total - full * installment;
+  const pv = (i) => {
+    let sum = 0;
+    for (let k = 1; k <= full; k += 1) sum += installment / ((1 + i) ** k);
+    if (last > 0) sum += last / ((1 + i) ** (full + 1));
+    return sum;
+  };
+  let lo = 0;
+  let hi = 1; // 100 % per bulan sudah jauh di atas bunga pinjaman mana pun
+  for (let iter = 0; iter < 80; iter += 1) {
+    const mid = (lo + hi) / 2;
+    if (pv(mid) > principal) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+/**
+ * Rincian bunga sebuah hutang — semuanya diturunkan, bukan diketik pengguna.
+ *
+ *   pokok (principal)          : uang yang dipinjam            → Rp 8.000.000
+ *   total pelunasan (total)    : yang harus dibayar seluruhnya → Rp 13.000.000
+ *   cicilan per bulan          :                           → Rp 1.153.334
+ *   → bunga total, %, tenor, bunga flat/bulan, bunga efektif/bulan & /tahun
+ */
+function monthsBetween(startISO, endISO) {
+  if (!startISO || !endISO) return 0;
+  const a = new Date(`${startISO}T00:00:00`);
+  const b = new Date(`${endISO}T00:00:00`);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime()) || b < a) return 0;
+  const months = ((b.getFullYear() - a.getFullYear()) * 12) + (b.getMonth() - a.getMonth())
+    + (b.getDate() > a.getDate() ? 1 : 0);
+  return Math.max(1, months);
+}
+
+export function debtInterest(debt) {
+  const principal = Math.max(0, Number(debt?.principal) || 0);
+  const total = Math.max(0, Number(debt?.total_repayment) || 0);
+  let installment = Math.max(0, Number(debt?.monthly_installment) || 0);
+  const obligation = total > 0 ? total : principal; // kewajiban = total bila diisi
+  const interest = total > principal ? total - principal : 0;
+  const interestPct = principal > 0 && total > principal ? (interest / principal) * 100 : 0;
+  let tenor = installment > 0 && total > 0 ? total / installment : 0;
+  let tenorSource = installment > 0 && total > 0 ? 'installment' : 'none';
+  if (!tenor) {
+    // cicilan belum diisi → perkirakan tenor dari rentang tanggal hutang & jatuh tempo
+    const months = monthsBetween(debt?.start_date, debt?.due_date);
+    if (months && total > 0) {
+      tenor = months;
+      installment = total / months; // jadwal angsuran rata (asumsi standar)
+      tenorSource = 'dates';
+    }
+  }
+  const tenorMonths = tenor > 0 ? Math.ceil(tenor - 1e-6) : 0;
+  const flatMonthly = tenor > 0 ? interestPct / tenor : 0;
+  const effectiveMonthly = effectiveMonthlyRate(principal, installment, total) * 100;
+  const effectiveAnnual = effectiveMonthly > 0 ? (((1 + effectiveMonthly / 100) ** 12) - 1) * 100 : 0;
+  return {
+    principal,
+    total,
+    obligation,
+    installment,
+    tenorSource,
+    hasTerms: total > 0,
+    hasInterest: interest > 0,
+    interest,
+    interestPct,
+    tenor,
+    tenorMonths,
+    flatMonthly,
+    flatAnnual: flatMonthly * 12,
+    effectiveMonthly,
+    effectiveAnnual,
+  };
+}
+
 export function debtState(debt, payments = null) {
   const db = db0();
   const list = payments || (debt?.id ? [] : []);
@@ -479,17 +563,20 @@ export function debtState(debt, payments = null) {
     : (db?.debtPayments || []).filter((p) => p.debt_id === debt?.id);
   void list;
   const paid = relevant.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
-  const principal = Number(debt?.principal) || 0;
-  const remaining = Math.max(0, principal - paid);
-  const progress = principal ? Math.min(100, (paid / principal) * 100) : 0;
+  const terms = debtInterest(debt);
+  const principal = terms.principal;
+  const obligation = terms.obligation; // total pelunasan bila diisi, selain itu pokok
+  const remaining = Math.max(0, obligation - paid);
+  const progress = obligation ? Math.min(100, (paid / obligation) * 100) : 0;
+  const monthsLeft = terms.installment > 0 ? Math.ceil((remaining / terms.installment) - 1e-9) : 0;
   const today = todayISO();
   const daysToDue = debt?.due_date ? daysBetween(today, debt.due_date) : null;
   let status = DEBT_STATUS.ACTIVE;
-  if (remaining <= 0 && principal > 0) status = DEBT_STATUS.PAID;
+  if (remaining <= 0 && obligation > 0) status = DEBT_STATUS.PAID;
   else if (paid > 0) status = DEBT_STATUS.PARTIALLY_PAID;
   if (status !== DEBT_STATUS.PAID && daysToDue !== null && daysToDue < 0) status = DEBT_STATUS.OVERDUE;
   return {
-    paid, principal, remaining, progress, status, daysToDue,
+    paid, principal, obligation, terms, monthsLeft, remaining, progress, status, daysToDue,
     isOverdue: status === DEBT_STATUS.OVERDUE,
     isDueSoon: daysToDue !== null && daysToDue >= 0 && daysToDue <= 7,
     payments: relevant.sort((a, b) => (a.date < b.date ? 1 : -1)),
@@ -703,7 +790,8 @@ export function netWorthTrend(db = db0(), days = 30) {
   }, 0);
   const debtPart = db.debts.reduce((acc, d) => {
     const paid = db.debtPayments.filter((p) => p.debt_id === d.id && p.date <= then).reduce((s, p) => s + p.amount, 0);
-    const started = d.start_date <= then ? d.principal - paid : 0;
+    const obligation = debtInterest(d).obligation; // pokok + bunga bila total pelunasan diisi
+    const started = d.start_date <= then ? obligation - paid : 0;
     return acc + Math.max(0, started);
   }, 0);
   const before = accountPart + recPart - debtPart;

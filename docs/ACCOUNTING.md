@@ -22,6 +22,13 @@ Contoh uji nyata (`tests/accounting.test.mjs`): meminjam Rp 3.000.000 lalu menci
 
 ```
 net worth = (saldo semua akun aset + piutang outstanding) − hutang outstanding
+
+Untuk hutang dengan **total pelunasan** yang lebih besar dari pokok (mis. pinjam Rp 8.000.000, lunas Rp 13.000.000),
+yang dihitung sebagai liabilitas adalah **kewajiban penuh (pokok + bunga)**, bukan hanya pokok. Alasannya:
+bunga flat adalah kewajiban yang sudah pasti sejak akad, dan kartu "Total Hutang Aktif" menampilkan angka yang sama.
+Konsekuensinya net worth turun sebesar bunga pada hari pencatatan (Rp 5.000.000 pada contoh itu); sementara
+saldo akun hanya bertambah sebesar **pokok** karena hanya itu uang yang benar-benar diterima.
+Bunga diturunkan otomatis oleh `debtInterest()` — lihat `docs/DATA-MODEL.md`.
           = bank + cash + e-wallet + investasi + dana darurat + piutang − hutang
 ```
 

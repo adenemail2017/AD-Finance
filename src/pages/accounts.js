@@ -5,7 +5,7 @@
 
 import store from '../services/store.js';
 import {
-  accountFlow, accountSummaries, assetTotals, buildStatement, sortTransactions, totalBalance,
+  accountFlow, accountSummaries, assetTotals, buildStatement, debtState, sortTransactions, totalBalance,
 } from '../services/finance.js';
 import { ACCOUNT_TYPES, ACCOUNT_TYPE_META, TRANSACTION_TYPES } from '../types/models.js';
 import { esc, on, qs, qsa } from '../utils/dom.js';
@@ -84,7 +84,7 @@ export const accountsPage = {
               <div class="row t-xs"><span class="t-dim grow">Aset likuid</span>${moneyHtml(totalBalance(state))}</div>
               <div class="row t-xs"><span class="t-dim grow">Dana darurat</span>${moneyHtml(totals[ACCOUNT_TYPES.EMERGENCY_FUND] || 0)}</div>
               <div class="row t-xs"><span class="t-dim grow">Investasi</span>${moneyHtml(totals[ACCOUNT_TYPES.INVESTMENT] || 0)}</div>
-              <div class="row t-xs"><span class="t-dim grow">Hutang</span>${moneyHtml(-state.debts.reduce((acc, d) => acc + d.principal, 0))}</div>
+              <div class="row t-xs"><span class="t-dim grow">Hutang</span>${moneyHtml(-state.debts.reduce((acc, d) => acc + debtState(d, state.debtPayments).remaining, 0))}</div>
             </div>
             <button class="btn btn-outline btn-block mt-4" data-new-account>${icon('plus', { size: 16 })} Akun baru</button>
           </section>

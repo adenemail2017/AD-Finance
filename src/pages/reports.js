@@ -11,7 +11,7 @@
 import store from '../services/store.js';
 import {
   accountBreakdown, budgetUsage, buildStatement, categoryBreakdown,
-  dailySeries, monthlySeries, netWorth, periodComparison, periodTotals, sortTransactions,
+  dailySeries, debtInterest, monthlySeries, netWorth, periodComparison, periodTotals, sortTransactions,
   spendingHeatmap, topMerchants, topTransactions, txns,
 } from '../services/finance.js';
 import { esc, on, qs, qsa } from '../utils/dom.js';
@@ -338,7 +338,7 @@ export const reportsPage = {
       const activeDays = new Set(totals.list.map((t) => t.date)).size;
       const debtOut = state.debts.reduce((acc, d) => {
         const paid = state.debtPayments.filter((p) => p.debt_id === d.id && p.date <= r.to).reduce((s, p) => s + p.amount, 0);
-        return acc + Math.max(0, d.principal - paid);
+        return acc + Math.max(0, debtInterest(d).obligation - paid);
       }, 0);
       const recOut = state.receivables.reduce((acc, rec) => {
         const got = state.receivablePayments.filter((p) => p.receivable_id === rec.id && p.date <= r.to).reduce((s, p) => s + p.amount, 0);

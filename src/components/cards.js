@@ -9,6 +9,7 @@ import { formatDate, relativeDays } from '../utils/date.js';
 import { icon, iconTile, logoMark } from './icons.js';
 import { badgeHtml, moneyHtml, progressHtml } from './ui.js';
 import { STATUS_META } from '../types/models.js';
+import { debtInterest } from '../services/finance.js';
 
 const toneClass = (tone) => (tone === 'pos' || tone === 'positive' ? 't-pos'
   : tone === 'neg' || tone === 'negative' ? 't-neg'
@@ -89,6 +90,8 @@ export function accountCard({ account, balance, meta = '', onClick = '', masked 
 export function debtCard({ debt, info, onPay, onClick }) {
   const meta = STATUS_META[info.status] || {};
   const tone = ['paid', 'received'].includes(info.status) ? 'pos' : info.status === 'overdue' ? 'neg' : info.status.startsWith('partial') ? 'warn' : 'info';
+  const bunga = info.terms || debtInterest(debt);
+  const labelTotal = bunga.hasInterest ? 'Total Pelunasan' : 'Total';
   return `<article class="debt-card ${info.isOverdue ? 'is-overdue' : ''}" data-debt-card="${esc(debt.id)}">
     <div class="debt-top">
       ${iconTile('hand-coins', { color: info.isOverdue ? 'var(--neg)' : 'var(--warn)', size: 38, radius: 12, iconSize: 19 })}
@@ -100,10 +103,15 @@ export function debtCard({ debt, info, onPay, onClick }) {
       ${badgeHtml(meta.label || 'Aktif', tone)}
     </div>
     <div class="debt-amounts">
-      <div class="debt-amount"><div class="label">Total</div><div class="value">${esc(money(info.principal))}</div></div>
+      <div class="debt-amount"><div class="label">${labelTotal}</div><div class="value">${esc(money(bunga.obligation))}</div></div>
       <div class="debt-amount"><div class="label">Dibayar</div><div class="value t-pos">${esc(money(info.paid))}</div></div>
       <div class="debt-amount"><div class="label">Sisa</div><div class="value t-neg">${esc(money(info.remaining))}</div></div>
     </div>
+    ${bunga.hasInterest || bunga.installment ? `<div class="debt-interest" data-debt-interest>
+      ${bunga.hasInterest ? `<span class="di-pill">${icon('percent', { size: 13 })} Bunga ${percent(bunga.interestPct)} · ${esc(money(bunga.interest, { compact: true }))}</span>` : ''}
+      ${bunga.installment ? `<span class="di-pill is-plain">${icon('calendar', { size: 13 })} ${esc(money(bunga.installment, { compact: true }))}/bln${bunga.tenorMonths ? ` · ${bunga.tenorMonths}×` : ''}${info.monthsLeft ? ` · sisa ${info.monthsLeft}×` : ''}</span>` : ''}
+      ${bunga.hasInterest ? `<span class="di-pill is-plain">Efektif ${percent(bunga.effectiveAnnual, 1)}/thn</span>` : ''}
+    </div>` : ''}
     <div class="debt-progress-head">
       <span>Progress ${info.progress.toFixed(0)}%</span>
       <span>${esc(debt.notes ? debt.notes.slice(0, 40) : '')}</span>

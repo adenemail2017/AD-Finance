@@ -114,6 +114,8 @@ CREATE TABLE IF NOT EXISTS debts (
   user_id        UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   counterparty   TEXT NOT NULL,
   principal      BIGINT NOT NULL CHECK (principal > 0),
+  total_repayment     BIGINT NOT NULL DEFAULT 0 CHECK (total_repayment >= 0),
+  monthly_installment BIGINT NOT NULL DEFAULT 0 CHECK (monthly_installment >= 0),
   account_id     UUID REFERENCES accounts(id) ON DELETE SET NULL,
   start_date     DATE NOT NULL DEFAULT CURRENT_DATE,
   due_date       DATE,
@@ -271,10 +273,11 @@ GROUP BY a.id;
 
 -- Outstanding debt / receivable per entity.
 CREATE OR REPLACE VIEW debt_outstanding AS
-SELECT d.*, d.principal - COALESCE(SUM(p.amount), 0) AS remaining,
+SELECT d.*, GREATEST(d.principal, d.total_repayment) - COALESCE(SUM(p.amount), 0) AS remaining,
+       GREATEST(d.principal, d.total_repayment) - d.principal AS interest,
        COALESCE(SUM(p.amount), 0) AS paid,
        CASE WHEN d.due_date IS NOT NULL AND d.due_date < CURRENT_DATE
-                 AND d.principal - COALESCE(SUM(p.amount), 0) > 0
+                 AND GREATEST(d.principal, d.total_repayment) - COALESCE(SUM(p.amount), 0) > 0
             THEN 'overdue' ELSE d.status END AS derived_status
 FROM debts d LEFT JOIN debt_payments p ON p.debt_id = d.id
 GROUP BY d.id;

@@ -627,6 +627,50 @@
 .debt-amount .value { font-size: var(--fs-sm); font-weight: 680; font-variant-numeric: tabular-nums; margin-top: 2px; }
 .debt-progress-head { display: flex; align-items: center; justify-content: space-between; font-size: var(--fs-2xs); color: var(--text-3); }
 
+/* --------------- Bunga otomatis hutang (v2.5.6) --------------------------- */
+.debt-interest { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -2px; }
+.di-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 9px; border-radius: var(--r-pill);
+  font-size: 10.5px; font-weight: 660; white-space: nowrap;
+  background: color-mix(in srgb, var(--warn-soft) 70%, var(--surface));
+  color: color-mix(in srgb, var(--warn) 78%, var(--text-1));
+  border: 1px solid color-mix(in srgb, var(--warn) 26%, transparent);
+}
+.di-pill.is-plain { background: var(--surface-2); color: var(--text-2); border-color: var(--line); }
+.di-pill svg { width: 13px; height: 13px; }
+
+.debt-calc, .debt-interest-card {
+  display: grid; gap: 10px;
+  padding: var(--s-3) var(--s-4); border-radius: var(--r-lg);
+  background: linear-gradient(150deg, color-mix(in srgb, var(--brand-50) 60%, var(--surface)), var(--surface));
+  border: 1px solid color-mix(in srgb, var(--brand-300) 40%, var(--line));
+}
+.debt-calc-head, .dic-head {
+  display: flex; align-items: center; gap: 8px;
+  font-size: var(--fs-xs); font-weight: 680; color: var(--text-2);
+}
+.debt-calc-head > svg, .dic-head > svg { color: var(--brand-500); flex: none; }
+.debt-calc-pill {
+  margin-left: auto; padding: 3px 10px; border-radius: var(--r-pill);
+  background: linear-gradient(140deg, var(--brand-500), var(--brand-700));
+  color: #fff; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.debt-calc-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(124px, 1fr));
+  gap: 8px 12px;
+}
+.debt-calc-grid > div { display: grid; gap: 1px; min-width: 0; }
+.debt-calc-grid span { font-size: 9.5px; font-weight: 660; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3); }
+.debt-calc-grid b {
+  font-size: var(--fs-xs); font-weight: 700; font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.debt-calc-grid b i { font-style: normal; font-weight: 560; }
+.debt-calc-note { font-size: 10px; line-height: 1.5; color: var(--text-3); }
+.metric-note { margin-top: 4px; font-size: var(--fs-2xs); color: var(--text-3); font-variant-numeric: tabular-nums; }
+
 /* ------------------------------- Statement -------------------------------- */
 .statement-head {
   display: grid; gap: var(--s-4); padding: var(--s-5);
@@ -678,7 +722,7 @@
   font-variant-numeric: tabular-nums; line-height: 1.15; margin-top: 2px;
 }
 .debt-hero-grid {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
   gap: 8px; margin-top: 2px;
   padding-top: 10px; border-top: 1px dashed var(--line-strong);
 }

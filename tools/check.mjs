@@ -184,6 +184,9 @@ ok(`layers — ${Object.entries(buckets).filter(([, v]) => v).map(([k, v]) => `$
 /* ------------------------------------------ 7. layout invariants ---- */
 console.log('\n\u001b[1mLayout invariants (desktop & mobile)\u001b[0m');
 const cssComponents = await readFile(join(ROOT, 'src/styles/components.css'), 'utf8');
+const debtsJs = await readFile(join(ROOT, 'src/pages/debts.js'), 'utf8');
+const ledgerJs = await readFile(join(ROOT, 'src/components/ledger.js'), 'utf8');
+const financeJs = await readFile(join(ROOT, 'src/services/finance.js'), 'utf8');
 const cardsJs = await readFile(join(ROOT, 'src/components/cards.js'), 'utf8');
 const cssApp = await readFile(join(ROOT, 'src/styles/app.css'), 'utf8');
 const cssDesign = await readFile(join(ROOT, 'src/styles/design-system.css'), 'utf8');
@@ -497,6 +500,43 @@ const invariants = [
     pass: /data-statement>\s*$|data-statement>/.test(await readFile(join(ROOT, 'src/pages/accounts.js'), 'utf8'))
       && /ledger-more/.test(cssComponents),
     hint: 'tanpa tombol ini pengguna tidak tahu ada transaksi lain di luar 6 baris',
+  },
+  {
+    label: 'Hutang mendukung pokok ≠ total pelunasan (total_repayment + monthly_installment)',
+    pass: /total_repayment: Math.abs\(Number\(input.total_repayment\) \|\| 0\)/.test(
+      await readFile(join(ROOT, 'src/types/models.js'), 'utf8'),
+    )
+      && /monthly_installment: Math.abs\(Number\(input.monthly_installment\) \|\| 0\)/.test(
+        await readFile(join(ROOT, 'src/types/models.js'), 'utf8'),
+      )
+      && /export function debtInterest/.test(financeJs)
+      && /data-total/.test(debtsJs)
+      && /data-installment/.test(debtsJs)
+      && /data-debt-calc/.test(debtsJs),
+    hint: 'pengguna meminjam 8 jt tetapi harus melunasi 13 jt — kewajiban, bunga, dan cicilan wajib tersimpan sebagai data nyata',
+  },
+  {
+    label: 'Bunga otomatis tampil sebagai persen di form, kartu, dan detail hutang',
+    pass: /Bunga otomatis/.test(debtsJs)
+      && /Bunga otomatis/.test(await readFile(join(ROOT, 'src/pages/debts.js'), 'utf8'))
+      && /debt-interest/.test(cardsJs)
+      && /\.debt-calc-grid \{/.test(await readFile(join(ROOT, 'src/styles/components.css'), 'utf8'))
+      && /debtInterest\(debt\)/.test(await readFile(join(ROOT, 'src/services/finance.js'), 'utf8')),
+    hint: 'angka bunga (%, flat, efektif, tenor) harus dihitung mesin, bukan diketik manual oleh pengguna',
+  },
+  {
+    label: 'Sisa hutang, net worth, dan laporan memakai kewajiban (pokok + bunga)',
+    pass: /const obligation = terms.obligation/.test(financeJs)
+      && /Math.max\(0, obligation - paid\)/.test(financeJs)
+      && /debtInterest\(d\)\.obligation/.test(await readFile(join(ROOT, 'src/app.js'), 'utf8'))
+      && /debtInterest\(d\)\.obligation/.test(await readFile(join(ROOT, 'src/pages/reports.js'), 'utf8')),
+    hint: 'kalau aset bertambah 8 jt, liabilitas harus 13 jt supaya kekayaan bersih jujur',
+  },
+  {
+    label: 'Sheet pembayaran hutang menawarkan cicilan bulanan sebagai nominal default',
+    pass: /data-fill="installment"/.test(ledgerJs)
+      && /info\.terms\.installment/.test(ledgerJs),
+    hint: 'pengguna membayar cicilan tetap tiap bulan (1.153.334) — jangan minta hitung manual',
   },
 ];
 for (const inv of invariants) {

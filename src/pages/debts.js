@@ -5,10 +5,12 @@
 
 import store from '../services/store.js';
 import {
-  debtList, debtState, receivableList, receivableState, sortTransactions, txns,
+  debtInterest, debtList, debtState, receivableList, receivableState, sortTransactions, txns,
 } from '../services/finance.js';
 import { esc, on, qs, qsa } from '../utils/dom.js';
-import { money, parseMoneyInput, formatAmountTyping } from '../utils/format.js';
+import {
+  money, parseMoneyInput, formatAmountTyping, percent,
+} from '../utils/format.js';
 import { formatDate, relativeDays, todayISO } from '../utils/date.js';
 import { icon, iconTile } from '../components/icons.js';
 import {
@@ -41,6 +43,9 @@ export const debtsPage = {
         totals: {
           debtOutstanding: openDebts.reduce((acc, d) => acc + d.info.remaining, 0),
           debtPrincipal: openDebts.reduce((acc, d) => acc + d.info.principal, 0),
+          debtObligation: openDebts.reduce((acc, d) => acc + d.info.obligation, 0),
+          debtInterest: openDebts.reduce((acc, d) => acc + d.info.terms.interest, 0),
+          debtInstallment: openDebts.reduce((acc, d) => acc + d.info.terms.installment, 0),
           debtPaid: openDebts.reduce((acc, d) => acc + d.info.paid, 0),
           overdueDebts: openDebts.filter((d) => d.info.isOverdue).length,
           recOutstanding: openRec.reduce((acc, r) => acc + r.info.remaining, 0),
@@ -73,7 +78,11 @@ export const debtsPage = {
           <div class="bento">
             ${metricCard({
     cls: 'col-3', label: 'Total Hutang Aktif', value: totals.debtOutstanding, iconName: 'hand-coins',
-    color: 'var(--warn)', sub: `${totals.overdueDebts} jatuh tempo · ${esc(money(totals.debtPaid))} sudah dibayar`,
+    color: 'var(--warn)',
+    sub: `${totals.overdueDebts} jatuh tempo · ${esc(money(totals.debtPaid))} sudah dibayar`,
+    footnote: totals.debtInterest > 0
+      ? `<div class="metric-note">Pokok ${esc(money(totals.debtPrincipal, { compact: true }))} + bunga <b class="t-neg">${esc(money(totals.debtInterest, { compact: true }))}</b>${totals.debtInstallment ? ` · cicilan ${esc(money(totals.debtInstallment, { compact: true }))}/bln` : ''}</div>`
+      : '',
   })}
             ${metricCard({
     cls: 'col-3', label: 'Total Piutang Aktif', value: totals.recOutstanding, iconName: 'file-text',
@@ -193,7 +202,7 @@ export function openDebtDetail(debtId, { onChanged } = {}) {
 
   return openAdaptive({
     title: `Hutang · ${debt.counterparty}`,
-    subtitle: `${money(info.remaining)} tersisa dari ${money(info.principal)}`,
+    subtitle: `${money(info.remaining)} tersisa dari ${money(info.obligation)}`,
     iconName: 'hand-coins',
     size: 'sm',
     body: `
@@ -209,19 +218,37 @@ export function openDebtDetail(debtId, { onChanged } = {}) {
           </div>
           ${progressHtml(info.progress, { tone: info.remaining <= 0 ? 'pos' : info.isOverdue ? 'neg' : 'warn', size: 'progress-lg' })}
           <div class="row-between t-2xs t-dim" style="margin-top:-4px">
-            <span>Terbayar ${esc(money(info.paid))} dari ${esc(money(info.principal))}</span>
+            <span>Terbayar ${esc(money(info.paid))} dari ${esc(money(info.obligation))}</span>
             <span class="t-bold">${info.progress.toFixed(0)}%</span>
           </div>
           <div class="debt-hero-grid">
-            <div class="dh-cell"><span class="dh-label">Total</span><span class="dh-value">${esc(money(info.principal))}</span></div>
+            <div class="dh-cell"><span class="dh-label">Pokok</span><span class="dh-value">${esc(money(info.principal))}</span></div>
+            <div class="dh-cell"><span class="dh-label">Total Pelunasan</span><span class="dh-value">${esc(money(info.obligation))}</span></div>
             <div class="dh-cell"><span class="dh-label">Dibayar</span><span class="dh-value t-pos">${esc(money(info.paid))}</span></div>
+            <div class="dh-cell"><span class="dh-label">Sisa</span><span class="dh-value t-neg">${esc(money(info.remaining))}</span></div>
             <div class="dh-cell"><span class="dh-label">Jatuh tempo</span><span class="dh-value">${debt.due_date ? `${esc(formatDate(debt.due_date, { year: false, short: true }))} <i class="t-dim">· ${esc(relativeDays(debt.due_date))}</i>` : '—'}</span></div>
           </div>
         </div>
 
+        ${info.terms.hasInterest || info.terms.installment ? `<div class="debt-interest-card" data-debt-interest-card>
+          <div class="dic-head">${icon('percent', { size: 16 })}<span>Bunga otomatis</span>
+            ${info.terms.hasInterest ? `<b class="debt-calc-pill">${percent(info.terms.interestPct)}</b>` : ''}</div>
+          <div class="debt-calc-grid">
+            <div><span>Bunga total</span><b class="t-neg">${esc(money(info.terms.interest))}</b></div>
+            <div><span>Cicilan per bulan</span><b>${info.terms.installment ? esc(money(info.terms.installment)) : '—'}</b></div>
+            <div><span>Lama cicilan</span><b>${info.terms.tenorMonths ? `${info.terms.tenorMonths} bulan` : '—'}${info.monthsLeft ? ` <i class="t-dim">· sisa ${info.monthsLeft}×</i>` : ''}</b></div>
+            <div><span>Bunga flat</span><b>${percent(info.terms.flatMonthly, 2)}/bln <i class="t-dim">· ${percent(info.terms.flatAnnual)}/thn</i></b></div>
+            <div><span>Bunga efektif</span><b>${percent(info.terms.effectiveMonthly, 2)}/bln <i class="t-dim">· ${percent(info.terms.effectiveAnnual)}/thn</i></b></div>
+            <div><span>Di atas pokok</span><b>${percent(info.terms.interestPct)} <i class="t-dim">· ${esc(money(info.terms.interest))}</i></b></div>
+          </div>
+          <div class="debt-calc-note">Flat = bunga dari pokok awal (kredit motor/pinjol). Efektif = bunga sebenarnya per bulan dari jadwal cicilan (APR).</div>
+        </div>` : ''}
+
         <dl class="kv kv-tight">
           <dt>Mulai</dt><dd>${esc(formatDate(debt.start_date, { weekday: true }))}</dd>
           <dt>Akun penerima</dt><dd>${esc(account?.name || '—')}</dd>
+          <dt>Bunga</dt><dd>${info.terms.hasInterest ? `${percent(info.terms.interestPct)} <i class="t-dim">(${esc(money(info.terms.interest))} bunga, efektif ${percent(info.terms.effectiveMonthly, 2)}/bln)</i>` : 'Tanpa bunga'}</dd>
+          ${info.terms.installment ? `<dt>Cicilan</dt><dd>${esc(money(info.terms.installment))}/bulan · ${info.terms.tenorMonths}× <i class="t-dim">${info.monthsLeft ? `(sisa ${info.monthsLeft}× lagi)` : '(lunas)'}</i></dd>` : ''}
           <dt>Pembayaran</dt><dd>${info.payments.length} kali${debt.reminder_days ? ` · pengingat ${debt.reminder_days} hari sebelum jatuh tempo` : ''}</dd>
           ${debt.notes ? `<dt>Catatan</dt><dd>${esc(debt.notes)}</dd>` : ''}
         </dl>
@@ -410,6 +437,8 @@ function openDebtForm({ debt = null, onSaved } = {}) {
   const draft = {
     counterparty: debt?.counterparty || '',
     principal: debt?.principal || 0,
+    total_repayment: debt?.total_repayment || 0,
+    monthly_installment: debt?.monthly_installment || 0,
     account_id: debt?.account_id || accounts[0]?.id || '',
     start_date: debt?.start_date || todayISO(),
     due_date: debt?.due_date || '',
@@ -429,11 +458,29 @@ function openDebtForm({ debt = null, onSaved } = {}) {
           ${fieldHtml({ label: 'Tanggal Hutang', name: 'start_date', id: 'debt-start', control: `<input class="input" type="date" id="debt-start" data-start value="${esc(draft.start_date)}" />` })}
         </div>
         <div class="field">
-          <span class="field-label">Nominal</span>
+          <span class="field-label">Nominal Pinjaman (pokok)</span>
           <div class="input-group"><span class="input-prefix">Rp</span>
             <input class="input amount-input" style="padding-left:44px" data-amount inputmode="numeric" value="${draft.principal ? formatAmountTyping(draft.principal) : ''}" placeholder="0" />
           </div>
+          <span class="field-hint">Uang yang Anda terima. Contoh: Rp 8.000.000</span>
         </div>
+        <div class="grid grid-2">
+          <div class="field">
+            <span class="field-label">Total Pelunasan (opsional)</span>
+            <div class="input-group"><span class="input-prefix">Rp</span>
+              <input class="input amount-input" style="padding-left:44px" data-total inputmode="numeric" value="${draft.total_repayment ? formatAmountTyping(draft.total_repayment) : ''}" placeholder="0" />
+            </div>
+            <span class="field-hint">Yang harus dibayar sampai lunas, termasuk bunga.</span>
+          </div>
+          <div class="field">
+            <span class="field-label">Cicilan per Bulan (opsional)</span>
+            <div class="input-group"><span class="input-prefix">Rp</span>
+              <input class="input amount-input" style="padding-left:44px" data-installment inputmode="numeric" value="${draft.monthly_installment ? formatAmountTyping(draft.monthly_installment) : ''}" placeholder="0" />
+            </div>
+            <span class="field-hint">Nominal angsuran bulanan yang Anda bayar.</span>
+          </div>
+        </div>
+        <div class="debt-calc" data-debt-calc aria-live="polite"></div>
         <div class="grid grid-2">
           ${fieldHtml({ label: 'Jatuh Tempo (opsional)', name: 'due_date', id: 'debt-due', control: `<input class="input" type="date" id="debt-due" data-due value="${esc(draft.due_date)}" />` })}
           ${fieldHtml({ label: 'Akun Penerima', name: 'account_id', id: 'debt-acc', control: `<select class="select" id="debt-acc" data-account>${accounts.map((a) => `<option value="${esc(a.id)}" ${a.id === draft.account_id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select>` })}
@@ -444,18 +491,68 @@ function openDebtForm({ debt = null, onSaved } = {}) {
       <button class="btn btn-primary ml-auto" data-save>${icon('check', { size: 17 })} ${editing ? 'Simpan Perubahan' : 'Simpan Hutang'}</button>`,
     onMount(sheet, api) {
       const amountInput = qs('[data-amount]', sheet);
-      amountInput.addEventListener('input', () => {
-        const digits = amountInput.value.replace(/[^\d]/g, '');
-        amountInput.value = digits ? formatAmountTyping(parseInt(digits, 10)) : '';
+      const totalInput = qs('[data-total]', sheet);
+      const installmentInput = qs('[data-installment]', sheet);
+      const calcEl = qs('[data-debt-calc]', sheet);
+
+      // semua kolom nominal: hanya angka, diformat saat diketik
+      [amountInput, totalInput, installmentInput].forEach((input) => {
+        input.addEventListener('input', () => {
+          const digits = input.value.replace(/[^\d]/g, '');
+          input.value = digits ? formatAmountTyping(parseInt(digits, 10)) : '';
+        });
       });
+
+      /* Hitungan otomatis: bunga, tenor, dan tarif — diperbarui sambil mengetik. */
+      const hitung = () => {
+        const principal = parseMoneyInput(amountInput.value);
+        const total = parseMoneyInput(totalInput.value);
+        const installment = parseMoneyInput(installmentInput.value);
+        if (!principal && !total) {
+          calcEl.innerHTML = `<span class="t-xs t-dim">Isi nominal pinjaman, total pelunasan, dan cicilan — bunga dihitung otomatis.</span>`;
+          return;
+        }
+        const t = debtInterest({ principal, total_repayment: total, monthly_installment: installment });
+        if (!t.hasInterest) {
+          calcEl.innerHTML = `<div class="debt-calc-head">${icon('info', { size: 16 })}<span>Belum ada bunga — total pelunasan ${total ? 'sama dengan pokok' : 'belum diisi'}.</span></div>`;
+          return;
+        }
+        const tenorTxt = t.tenorMonths
+          ? `${t.tenorMonths} bulan${t.tenorSource === 'dates' ? ' (estimasi dari tanggal)' : ''}`
+          : '—';
+        const cicilanTxt = t.installment ? money(t.installment) : '—';
+        calcEl.innerHTML = `
+          <div class="debt-calc-head">${icon('percent', { size: 16 })}<span>Bunga otomatis</span>
+            <b class="debt-calc-pill">${percent(t.interestPct)} dari pinjaman</b></div>
+          <div class="debt-calc-grid">
+            <div><span>Bunga total</span><b class="t-neg">${esc(money(t.interest))}</b></div>
+            <div><span>Total pelunasan</span><b>${esc(money(t.total))}</b></div>
+            <div><span>Lama cicilan</span><b>${esc(tenorTxt)}${t.installment ? ` × ${esc(cicilanTxt)}` : ''}</b></div>
+            <div><span>Bunga flat</span><b>${percent(t.flatMonthly, 2)}/bln <i class="t-dim">· ${percent(t.flatAnnual)}/thn</i></b></div>
+            <div><span>Bunga efektif</span><b>${percent(t.effectiveMonthly, 2)}/bln <i class="t-dim">· ${percent(t.effectiveAnnual)}/thn</i></b></div>
+            <div><span>Lebih mahal dari pokok</span><b>${esc(money(t.total - t.principal))}</b></div>
+          </div>
+          <div class="debt-calc-note">Flat = bunga dihitung dari pokok awal (cara umum kredit motor/pinjol). Efektif = bunga sebenarnya per bulan dari jadwal cicilan (APR).</div>`;
+      };
+      [amountInput, totalInput, installmentInput].forEach((input) => input.addEventListener('input', hitung));
+      hitung();
+
       on(sheet, 'click', '[data-save]', async () => {
         const party = qs('[data-party]', sheet).value.trim();
         const amount = parseMoneyInput(amountInput.value);
+        const total = parseMoneyInput(totalInput.value);
+        const installment = parseMoneyInput(installmentInput.value);
         if (!party) { toast('Nama pemberi hutang wajib diisi.', { tone: 'warn' }); return; }
-        if (!amount) { toast('Nominal hutang wajib diisi.', { tone: 'warn' }); return; }
+        if (!amount) { toast('Nominal pinjaman wajib diisi.', { tone: 'warn' }); return; }
+        if (total && total < amount) {
+          toast('Total pelunasan tidak boleh lebih kecil dari pinjaman.', { tone: 'warn', title: 'Cek lagi' });
+          return;
+        }
         const payload = {
           counterparty: party,
           principal: amount,
+          total_repayment: total || 0,
+          monthly_installment: installment || 0,
           account_id: qs('[data-account]', sheet).value,
           start_date: qs('[data-start]', sheet).value,
           due_date: qs('[data-due]', sheet).value || null,

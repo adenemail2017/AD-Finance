@@ -12,7 +12,7 @@ Key path `id` kecuali `settings`, `outbox`, `meta` yang memakai `key`.
 | `accounts` | bank · e-wallet · cash · investment · emergency_fund | `opening_balance`, warna, ikon, status, nomor (selalu dimask di UI) |
 | `transactions` | buku besar — sumber kebenaran uang | lihat skema di bawah |
 | `categories` | kategori **dan** subkategori dalam satu store | `parent_id === null` → kategori; `kind` ∈ `expense`/`income` |
-| `debts` / `debt_payments` | hutang + riwayat pembayaran | pembayaran menaut `transaction_id` |
+| `debts` / `debt_payments` | hutang + riwayat pembayaran (`total_repayment`, `monthly_installment`) | pembayaran menaut `transaction_id` |
 | `receivables` / `receivable_payments` | piutang + riwayat penerimaan | idem |
 | `budgets` | anggaran bulanan per kategori | unik per `(category_id, period)` |
 | `notifications` | notifikasi turunan dengan `key` stabil | dedupe lewat `key` |
@@ -66,6 +66,10 @@ Nilai ini **tidak** dipersistensi agar tidak pernah basi — selalu dihitung di 
 
 - saldo akun (`accountBalance`, `accountSummaries`), total kekayaan, net worth
 - status hutang/piutang (`debtState`/`receivableState`): `active` → `partially_*` → `paid`/`received`, dan `overdue` bila lewat jatuh tempo dan masih ada sisa
+- **bunga hutang** (`debtInterest()`): `obligation` (total pelunasan bila diisi, selain itu pokok), `interest` & `interestPct`,
+  `tenor`/`tenorMonths` (dari cicilan, atau dari rentang tanggal), `flatMonthly`/`flatAnnual`, dan
+  `effectiveMonthly`/`effectiveAnnual` (IRR jadwal cicilan via bisection). Kartu, detail, dan form memakai fungsi yang sama,
+  sehingga tidak mungkin menampilkan bunga yang berbeda antar layar
 - pemakaian budget (`budgetUsage`) dengan level `ok` / `warn` (≥80%) / `over` (≥100%)
 - notifikasi (jatuh tempo, budget, saldo rendah, laporan bulanan siap)
 - angka rekening koran (`buildStatement`) dan rekap bulanan (`monthlySeries`)

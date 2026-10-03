@@ -10,7 +10,7 @@
  *  • Writes/API: never cached; the app itself queues mutations in an outbox.
  */
 
-const VERSION = 'adfinance-v2.5.5';
+const VERSION = 'adfinance-v2.5.6';
 const RUNTIME = 'adfinance-runtime-v2.0.0';
 
 const APP_SHELL = [

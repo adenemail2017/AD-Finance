@@ -272,6 +272,8 @@ export function makeDebt(input = {}) {
     user_id: input.user_id || 'local',
     counterparty: input.counterparty || 'Tanpa Nama',
     principal: Math.abs(Number(input.principal) || 0),
+    total_repayment: Math.abs(Number(input.total_repayment) || 0),
+    monthly_installment: Math.abs(Number(input.monthly_installment) || 0),
     account_id: input.account_id || null,
     start_date: input.start_date || toISODate(new Date()),
     due_date: input.due_date || null,

@@ -866,16 +866,17 @@ export function openDebtPayment({ debtId, onDone }) {
       <div class="stack-5">
         <div class="banner is-warn">
           ${icon('info', { size: 18 })}
-          <div class="grow t-xs">Total ${esc(money(info.principal))} · sudah dibayar ${esc(money(info.paid))} ·
-            <strong>sisa ${esc(money(info.remaining))}</strong>${debt.due_date ? ` · jatuh tempo ${esc(formatDate(debt.due_date))}` : ''}</div>
+          <div class="grow t-xs">Pokok ${esc(money(info.principal))}${info.terms.hasInterest ? ` + bunga ${esc(money(info.terms.interest))} = ${esc(money(info.obligation))}` : ''} ·
+            sudah dibayar ${esc(money(info.paid))} · <strong>sisa ${esc(money(info.remaining))}</strong>${info.terms.installment ? ` · cicilan ${esc(money(info.terms.installment))}/bln${info.monthsLeft ? ` (${info.monthsLeft}× lagi)` : ''}` : ''}</div>
         </div>
         <div class="field">
           <span class="field-label">Nominal pembayaran</span>
           <div class="input-group">
             <span class="input-prefix">Rp</span>
-            <input class="input amount-input" data-amount inputmode="numeric" data-autofocus placeholder="0" style="padding-left:44px" value="${esc(formatAmountTyping(Math.min(info.remaining, Math.max(0, balances.get(debt.account_id) || 0)) || info.remaining))}" />
+            <input class="input amount-input" data-amount inputmode="numeric" data-autofocus placeholder="0" style="padding-left:44px" value="${esc(formatAmountTyping(info.terms.installment > 0 ? Math.min(info.remaining, info.terms.installment) : (Math.min(info.remaining, Math.max(0, balances.get(debt.account_id) || 0)) || info.remaining)))}" />
           </div>
           <div class="chip-row">
+            ${info.terms.installment > 0 && info.remaining > info.terms.installment ? `<button type="button" class="chip" data-fill="installment">Cicilan (${esc(money(info.terms.installment, { compact: true }))})</button>` : ''}
             <button type="button" class="chip" data-fill="remaining">Lunasi sisa (${esc(money(info.remaining, { compact: true }))})</button>
             <button type="button" class="chip" data-fill="balance">Sesuaikan ke saldo akun</button>
             ${[100_000, 500_000, 1_000_000].map((v) => v <= info.remaining ? `<button type="button" class="chip" data-add="${v}">+${esc(money(v, { compact: true }))}</button>` : '').join('')}
@@ -925,7 +926,9 @@ export function openDebtPayment({ debtId, onDone }) {
       });
       accountSelect.addEventListener('change', syncAffordability);
       on(sheet, 'click', '[data-fill]', (event, btn) => {
-        const target = btn.dataset.fill === 'balance' ? balanceOf(accountSelect.value) : info.remaining;
+        let target = info.remaining;
+        if (btn.dataset.fill === 'balance') target = balanceOf(accountSelect.value);
+        if (btn.dataset.fill === 'installment') target = info.terms.installment;
         amountInput.value = formatAmountTyping(Math.max(0, Math.min(info.remaining, target)));
         syncAffordability();
       });

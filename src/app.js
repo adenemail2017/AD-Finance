@@ -7,6 +7,7 @@
  */
 
 import store from './services/store.js';
+import { debtInterest } from './services/finance.js';
 import { unreadCount, refreshNotifications } from './services/notifications.js';
 import { hasPin, isUnlocked, markUnlocked, verifyPin } from './services/security.js';
 import { registerServiceWorker, checkForUpdate, cacheVersion } from './sw-client.js';
@@ -243,7 +244,7 @@ function netWorthValue(state) {
   const accounts = [...balances.values()].reduce((a, b) => a + b, 0);
   const rec = state.receivables.reduce((acc, r) => acc + Math.max(0, r.principal
     - state.receivablePayments.filter((p) => p.receivable_id === r.id).reduce((s, p) => s + p.amount, 0)), 0);
-  const debt = state.debts.reduce((acc, d) => acc + Math.max(0, d.principal
+  const debt = state.debts.reduce((acc, d) => acc + Math.max(0, debtInterest(d).obligation
     - state.debtPayments.filter((p) => p.debt_id === d.id).reduce((s, p) => s + p.amount, 0)), 0);
   return accounts + rec - debt;
 }

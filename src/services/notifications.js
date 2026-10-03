@@ -46,7 +46,7 @@ export function refreshNotifications(state) {
         key: `debt:${debt.id}:overdue:${debt.due_date}`,
         type: 'debt_overdue',
         title: `Hutang ke ${debt.counterparty} jatuh tempo`,
-        message: `Terlambat ${Math.abs(days)} hari. Sisa ${nf(info.remaining)} dari ${nf(info.principal)}.`,
+        message: `Terlambat ${Math.abs(days)} hari. Sisa ${nf(info.remaining)} dari ${nf(info.obligation)}.`,
         tone: 'neg', icon: 'alert', priority: 1,
         action: { route: 'debts', params: { id: debt.id } },
       }));
