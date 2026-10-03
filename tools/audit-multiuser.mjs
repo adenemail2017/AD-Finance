@@ -63,30 +63,61 @@ const state = () => page.evaluate(() => ({
   akun: window.__pfos.getState().accounts.length,
   trx: window.__pfos.getState().transactions.length,
   kategori: window.__pfos.getState().categories.length,
+  phone: window.__pfos.getState().profile.phone,
 }));
 await wait(600);
 
 // ── 1. gerbang perkenalan ────────────────────────────────────────────
 step('1 gerbang');
-const gate = await page.evaluate(() => ({
-  ada: Boolean(document.querySelector('.onboarding')),
-  label: document.querySelector('.onboard-card .field-label')?.textContent?.trim(),
-  defaultMode: document.querySelector('input[name="onboard-mode"]:checked')?.value,
-  appKosong: !document.querySelector('#view .card'),
-}));
+const gate = await page.evaluate(() => {
+  const teks = document.querySelector('.onboard-card')?.textContent || '';
+  return {
+    ada: Boolean(document.querySelector('.onboarding')),
+    appKosong: !document.querySelector('#view .card'),
+    nama: /Nama Anda/.test(teks),
+    telp: /Nomor Telepon/.test(teks),
+    radio: document.querySelectorAll('input[name="onboard-mode"]').length,
+    tanyaMode: /Mulai dari mana/i.test(teks),
+  };
+});
 cek('perangkat baru diblokir layar perkenalan', gate.ada && gate.appKosong);
-cek('label nama jelas & default "mulai dari data kosong"', gate.label === 'Nama Anda' && gate.defaultMode === 'empty', `${gate.label} · ${gate.defaultMode}`);
+cek('form perkenalan hanya meminta nama + nomor telepon', gate.nama && gate.telp, `nama=${gate.nama} telp=${gate.telp}`);
+cek('pilihan "Mulai dari mana?" sudah tidak ada', gate.radio === 0 && !gate.tanyaMode);
 await jepret('u1-perkenalan.png');
 
-// ── 2. nama kosong ditolak, lalu buat pengguna pertama ──────────────
-step('2 nama kosong');
+// ── 2. form kosong / nomor salah ditolak, lalu buat pengguna pertama ─
+step('2 form kosong');
 await page.evaluate(() => document.querySelector('[data-onboard-submit]').dispatchEvent(new MouseEvent('click', { bubbles: true })));
 await wait(300);
-cek('nama kosong ditolak dengan pesan', await page.evaluate(() => document.querySelector('[data-onboard-error]')?.hidden === false));
-step('2b buat pengguna pertama');
+const kosong = await page.evaluate(() => ({
+  nama: document.querySelector('[data-onboard-error]')?.hidden === false,
+  telp: document.querySelector('[data-onboard-phone-error]')?.hidden === false,
+  needsUser: window.__pfos.needsUser(),
+}));
+cek('nama & nomor telepon kosong ditolak dengan pesan', kosong.nama && kosong.telp && kosong.needsUser);
+
+step('2a nomor telepon tidak masuk akal');
 await page.evaluate(() => {
   const i = document.querySelector('[data-onboard-name]');
   i.value = 'Ade Nurrahman'; i.dispatchEvent(new Event('input', { bubbles: true }));
+  const t = document.querySelector('[data-onboard-phone]');
+  t.value = '123'; t.dispatchEvent(new Event('input', { bubbles: true }));
+  document.querySelector('[data-onboard-submit]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+});
+await wait(400);
+const telpSalah = await page.evaluate(() => ({
+  pesan: (document.querySelector('[data-onboard-phone-error]')?.textContent || '').trim(),
+  hidden: document.querySelector('[data-onboard-phone-error]')?.hidden,
+  needsUser: window.__pfos.needsUser(),
+}));
+cek('nomor telepon salah ditolak + contoh format ditampilkan',
+  telpSalah.hidden === false && /0812-3456-7890/.test(telpSalah.pesan) && telpSalah.needsUser, telpSalah.pesan);
+await jepret('u7-telp-salah.png');
+
+step('2b buat pengguna pertama');
+await page.evaluate(() => {
+  const t = document.querySelector('[data-onboard-phone]');
+  t.value = '0812 3456 7890'; t.dispatchEvent(new Event('input', { bubbles: true }));
   document.querySelector('[data-onboard-submit]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
 });
 for (let i = 0; i < 40; i += 1) { await wait(400); if ((await state()).siap) break; }
@@ -97,6 +128,7 @@ const view1 = await page.evaluate(() => ({
   nama: (document.querySelector('.atm-holder')?.textContent || '').trim(),
 }));
 cek('pengguna baru mulai dengan 0 akun & 0 transaksi', pertama.akun === 0 && pertama.trx === 0, `${pertama.akun} akun · ${pertama.trx} transaksi`);
+cek('nomor telepon tersimpan ternormalisasi (0812-3456-7890 → 081234567890)', pertama.phone === '081234567890', pertama.phone);
 cek('kategori bawaan tersedia untuk mulai mencatat', pertama.kategori > 0, `${pertama.kategori} kategori`);
 cek('beranda menampilkan panduan 3 langkah', view1.panduan);
 cek('kartu saldo memakai nama pengguna', /ade nurrahman/i.test(view1.nama), view1.nama);
@@ -206,15 +238,19 @@ await page2.waitForFunction(() => Boolean(window.__pfos), { timeout: 45000 });
 await wait(900);
 const legacy = await page2.evaluate(() => ({
   gate: Boolean(document.querySelector('.onboarding')),
-  keep: Boolean(document.querySelector('input[name="onboard-mode"][value="keep"]')?.checked),
-  teks: (document.querySelector('.onboard-card')?.textContent || '').includes('Pertahankan data yang ada'),
+  radio: document.querySelectorAll('input[name="onboard-mode"]').length,
+  teks: (document.querySelector('.onboard-card')?.textContent || ''),
 }));
-cek('perangkat lama tetap diminta mengisi nama', legacy.gate);
-cek('pilihan "Pertahankan data yang ada" disorot untuk perangkat lama', legacy.keep && legacy.teks);
-step('6c isi nama');
+cek('perangkat lama tetap diminta mengisi nama + telepon', legacy.gate && legacy.radio === 0);
+cek('layar menjelaskan data lama akan dipertahankan (tanpa pilihan radion)',
+  /akan dipertahankan/.test(legacy.teks) && /1 akun/.test(legacy.teks), legacy.teks.replace(/\s+/g, ' ').slice(-90));
+await jepret('u4-perangkat-lama.png', false, page2);
+step('6c isi nama + telepon');
 await page2.evaluate(() => {
   const i = document.querySelector('[data-onboard-name]');
   i.value = 'Ade Pemilik Lama'; i.dispatchEvent(new Event('input', { bubbles: true }));
+  const t = document.querySelector('[data-onboard-phone]');
+  t.value = '081298765432'; t.dispatchEvent(new Event('input', { bubbles: true }));
   document.querySelector('[data-onboard-submit]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
 });
 for (let i = 0; i < 30; i += 1) {
@@ -226,10 +262,11 @@ await wait(700);
 const legacySetelah = await page2.evaluate(() => ({
   akun: window.__pfos.getState().accounts.length,
   kartu: (document.querySelector('.atm-holder')?.textContent || '').trim(),
+  phone: window.__pfos.getState().profile.phone,
 }));
 cek('data lama dipertahankan setelah mengisi nama', legacySetelah.akun === 1, `${legacySetelah.akun} akun lama`);
 cek('nama baru dipakai di kartu saldo', /ade pemilik lama/i.test(legacySetelah.kartu), legacySetelah.kartu);
-await jepret('u4-perangkat-lama.png', false, page2);
+cek('nomor telepon perangkat lama ikut tersimpan', legacySetelah.phone === '081298765432', legacySetelah.phone);
 await browser2.close();
 
 cek('tidak ada error konsol', errors.length === 0 && errors2.length === 0, [...errors, ...errors2].slice(0, 2).join(' | '));

@@ -1,6 +1,6 @@
 # Roadmap & status
 
-Dikerjakan bertahap sesuai 12 fase yang diminta; setiap fase menjaga kompatibilitas dengan fase sebelumnya (tidak ada fitur lama yang rusak — dijaga oleh 35 pemeriksa integritas + 222 smoke + 39 unit + 12 sandbox).
+Dikerjakan bertahap sesuai 12 fase yang diminta; setiap fase menjaga kompatibilitas dengan fase sebelumnya (tidak ada fitur lama yang rusak — dijaga oleh 36 pemeriksa integritas + 225 smoke + 39 unit + 12 sandbox).
 
 | # | Fase | Status | Bukti |
 |---|---|---|---|
@@ -14,8 +14,8 @@ Dikerjakan bertahap sesuai 12 fase yang diminta; setiap fase menjaga kompatibili
 | 8 | Analytics | ✅ | 11 grafik, rentang 7D/30D/3M/6M/1Y/Semua/Custom |
 | 9 | Budget & notifikasi | ✅ | budget per kategori, ambang 80%/100%, 6 jenis notifikasi turunan |
 | 10 | PWA & offline | ✅ | manifest, service worker 41 entri precache, outbox + auto-sync, install prompt, splash |
-| 11 | Auth & keamanan | ✅ | PIN lock (salted SHA-256 ×120), isolasi data per user di API + RLS, masking nomor rekening, **multi-pengguna: onboarding nama wajib + workspace kosong per pengguna** |
-| 12 | Testing · bugfix · performa | ✅ | 39 unit/integration + 222 smoke + 12 sandbox + 35 pemeriksa integritas + audit browser (layout & multiuser) |
+| 11 | Auth & keamanan | ✅ | PIN lock (salted SHA-256 ×120), isolasi data per user di API + RLS, masking nomor rekening, **multi-pengguna: onboarding nama + nomor telepon, workspace kosong per pengguna** |
+| 12 | Testing · bugfix · performa | ✅ | 39 unit/integration + 225 smoke + 12 sandbox + 37 pemeriksa integritas + audit browser (layout & multiuser) |
 
 ## Bug nyata yang ditemukan test dan sudah diperbaiki
 
@@ -237,8 +237,25 @@ langsung melihat saldo, transaksi, dan hutang orang lain. Sekarang boot berhenti
 PIN lock tetap berlaku, dan seluruh invarian akuntansi tidak berubah.
 
 **Bukti:** `preview/multi-pengguna-2.5.0.png` (layar perkenalan, beranda kosong, perangkat lama, kartu Pengguna) ·
-**Verifikasi:** 35 pemeriksa integritas, **222/222** smoke, 39 unit, 12 sandbox, `audit:multiuser` **25/25** (browser sungguhan,
+**Verifikasi (saat rilis):** 35 pemeriksa integritas, **222/222** smoke, 39 unit, 12 sandbox, `audit:multiuser` **25/25** (browser sungguhan,
 termasuk satu browser terpisah untuk skenario perangkat lama).
+
+## Iterasi 9.1 — perkenalan disederhanakan: cukup nama + nomor telepon (v2.5.1)
+
+**Permintaan:** "Hapus pilihan Mulai dari mana ? ketika mulai aplikasi cukup dengan masukan Nama dan Nomor Telp."
+
+| Sebelum | Sesudah |
+|---|---|
+| Tiga pilihan radio: Data kosong / Pertahankan data / Isi data contoh | **Dua kolom saja**: Nama Anda + Nomor Telepon, lalu tombol *Mulai gunakan* |
+| Perangkat lama harus memilih "Pertahankan data" | data lama **dipertahankan otomatis**; layar hanya memberi tahu ("Data yang sudah ada … akan dipertahankan") |
+| Nomor telepon tidak diminta | nomor telepon jadi identitas pengguna: divalidasi (`0812-3456-7890`), dinormalkan (`+62`/`62`/`8…` → `08…`), tersimpan di profil, tampil di kartu Profil, daftar pengguna, chip menu profil, dan bisa diubah kapan saja di Pengaturan |
+
+Validasi ramah: nama minimal 2 karakter dan nomor telepon 9–15 digit — keduanya ditandai di kolomnya masing-masing,
+tanpa pernah menggagalkan form secara misterius. Data contoh kini hanya tersedia lewat API internal (`createUser({ mode: 'demo' })`)
+untuk keperluan pengujian, bukan lagi pilihan di layar pengguna.
+
+**Bukti:** `preview/multi-pengguna-2.5.1.png` · **Verifikasi:** 37 pemeriksa integritas, **225/225** smoke,
+`audit:multiuser` **26/26** (termasuk penolakan nomor telepon salah + skenario perangkat lama).
 
 ## Prinsip untuk perubahan berikutnya
 

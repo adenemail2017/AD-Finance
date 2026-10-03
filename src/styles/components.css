@@ -1308,20 +1308,6 @@
 .onboard-head .boot-mark { flex: none; }
 
 /* Kartu pilihan (mulai dari kosong / data contoh / pertahankan data) */
-.opt-card {
-  display: flex; align-items: flex-start; gap: var(--s-3);
-  padding: var(--s-3) var(--s-4); border: 1px solid var(--line);
-  border-radius: var(--r-md); background: var(--surface-2);
-  cursor: pointer; transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
-}
-.opt-card:hover { border-color: color-mix(in srgb, var(--brand-500) 32%, var(--line)); }
-.opt-card input { margin-top: 3px; accent-color: var(--brand-500); flex: none; }
-.opt-card b { display: block; font-size: var(--fs-sm); font-weight: 660; }
-.opt-card em { display: block; font-style: normal; font-size: var(--fs-2xs); color: var(--text-3); margin-top: 2px; line-height: 1.5; }
-.opt-card:has(input:checked) {
-  border-color: color-mix(in srgb, var(--brand-500) 55%, var(--line));
-  background: linear-gradient(150deg, color-mix(in srgb, var(--brand-500) 10%, transparent), transparent 70%), var(--surface);
-}
 .input.is-invalid { border-color: var(--neg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--neg) 18%, transparent); }
 
 /* Daftar pengguna */
@@ -1333,6 +1319,8 @@
   font-size: var(--fs-2xs); font-weight: 620; color: var(--text-2); max-width: 160px;
 }
 .user-chip:hover { border-color: var(--line-strong); color: var(--text); }
+.user-chip-phone { font-style: normal; font-size: var(--fs-2xs); color: var(--text-3); flex: none; }
+.user-chip.is-active .user-chip-phone { color: color-mix(in srgb, white 78%, transparent); }
 .user-chip.is-active {
   color: var(--brand-700); border-color: color-mix(in srgb, var(--brand-500) 45%, var(--line));
   background: color-mix(in srgb, var(--brand-500) 10%, transparent);

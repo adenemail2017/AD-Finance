@@ -138,35 +138,60 @@ await waitFor(() => window.__pfos, { label: 'api siap', timeout: 12000 });
 /* Gerbang perkenalan: nama wajib diisi sebelum workspace dibuat       */
 /* ------------------------------------------------------------------ */
 
-section('Perkenalan pengguna (wajib isi nama)');
+section('Perkenalan pengguna (nama + nomor telepon)');
 const q = (sel) => window.document.querySelector(sel);
 const qa = (sel) => [...window.document.querySelectorAll(sel)];
 const tap = (el) => el.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+const isi = (el, nilai) => { el.value = nilai; el.dispatchEvent(new window.Event('input', { bubbles: true })); };
 const nameInput = await waitFor(() => q('[data-onboard-name]'), { label: 'layar perkenalan', timeout: 8000 });
+const phoneInput = q('[data-onboard-phone]');
 check('aplikasi menahan diri di layar perkenalan', Boolean(q('.onboarding')) && !q('#view .card'));
-check('permintaan nama tampil dengan label jelas', Boolean(nameInput) && /Nama Anda/.test(q('.onboard-card')?.textContent || ''));
-check('pilihan "data kosong" jadi default', q('input[name="onboard-mode"]:checked')?.value === 'empty');
+check('form meminta tepat dua hal: nama + nomor telepon',
+  Boolean(nameInput) && Boolean(phoneInput) && /Nama Anda/.test(q('.onboard-card')?.textContent || '')
+  && /Nomor Telepon/.test(q('.onboard-card')?.textContent || ''));
+check('pilihan "mulai dari mana" sudah tidak ada',
+  qa('input[name="onboard-mode"]').length === 0 && !/Mulai dari mana/i.test(q('.onboard-card')?.textContent || ''));
+
 tap(q('[data-onboard-submit]'));
-await sleep(60);
-check('tombol mulai ditolak selama nama kosong', q('[data-onboard-error]')?.hidden === false);
-check('workspace belum dibuat selama nama kosong',
+await sleep(80);
+check('tombol mulai ditolak selama nama & telepon kosong',
+  q('[data-onboard-error]')?.hidden === false && q('[data-onboard-phone-error]')?.hidden === false);
+check('workspace belum dibuat selama form belum lengkap',
   qa('#view .card').length === 0 && window.__pfos.needsUser() === true && window.__pfos.getState().accounts.length === 0);
 
-// lengkapi perkenalan (dengan data contoh) supaya sisa suite punya fixture
-nameInput.value = 'Aden Penguji';
-nameInput.dispatchEvent(new window.Event('input', { bubbles: true }));
-const demoOpt = q('input[name="onboard-mode"][value="demo"]');
-demoOpt.checked = true;
-demoOpt.dispatchEvent(new window.Event('change', { bubbles: true }));
-check('opsi "data contoh" bisa dipilih', q('input[name="onboard-mode"]:checked')?.value === 'demo');
+isi(nameInput, 'Aden Penguji');
+isi(phoneInput, '123');
+tap(q('[data-onboard-submit]'));
+await sleep(80);
+check('nomor telepon tidak masuk akal ditolak dengan contoh format',
+  q('[data-onboard-phone-error]')?.hidden === false && /0812-3456-7890/.test(q('[data-onboard-phone-error]').textContent));
+check('workspace masih belum dibuat saat telepon salah', window.__pfos.needsUser() === true);
+
+isi(phoneInput, '0812 3456 7890');
 tap(q('[data-onboard-submit]'));
 await waitFor(() => window.__pfos.getState().users.length === 1, { label: 'workspace dibuat', timeout: 8000 });
-await waitFor(() => window.__pfos.getState().accounts.length > 0, { label: 'data contoh dimuat', timeout: 8000 });
 check('perkenalan selesai → workspace pengguna baru dibuat', window.__pfos.needsUser() === false);
-check('pengguna baru tercatat di registry', window.__pfos.getState().users.length === 1
-  && window.__pfos.getState().profile.name === 'Aden Penguji',
-  window.__pfos.getState().profile.name);
-check('data contoh dimuat karena opsi demo dipilih', window.__pfos.getState().accounts.length === 10);
+check('pengguna baru tercatat di registry dengan nomor telepon yang dinormalkan',
+  window.__pfos.getState().users.length === 1
+  && window.__pfos.getState().profile.name === 'Aden Penguji'
+  && window.__pfos.getState().profile.phone === '081234567890',
+  `${window.__pfos.getState().profile.name} · ${window.__pfos.getState().profile.phone}`);
+check('workspace baru benar-benar kosong (0 akun, 0 transaksi)',
+  window.__pfos.getState().accounts.length === 0 && window.__pfos.getState().transactions.length === 0,
+  `${window.__pfos.getState().accounts.length} akun`);
+check('kategori bawaan tetap disiapkan untuk langsung mencatat',
+  window.__pfos.getState().categories.length > 0);
+
+// Fixture untuk sisa suite: pengguna uji dengan data contoh (dibuat lewat API,
+// karena pilihan "data contoh" sudah tidak ada di layar perkenalan).
+const penggunaPertama = window.__pfos.getState().users[0].id;
+await window.__pfos.deleteUser(penggunaPertama);
+await sleep(120);
+await window.__pfos.createUser({ name: 'Aden Penguji', phone: '081234567890', mode: 'demo' });
+await waitFor(() => window.__pfos.getState().accounts.length > 0, { label: 'fixture data contoh', timeout: 8000 });
+check('fixture data contoh siap untuk sisa pengujian',
+  window.__pfos.getState().users.length === 1 && window.__pfos.getState().accounts.length === 10,
+  `${window.__pfos.getState().users.length} pengguna · ${window.__pfos.getState().accounts.length} akun`);
 await waitFor(() => window.document.querySelector('#view .card'), { label: 'dashboard render', timeout: 12000 });
 const bootMs = Date.now() - t0;
 

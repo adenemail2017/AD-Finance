@@ -17,7 +17,7 @@ import {
   makeTransaction, monthKey, toISODate, toISOTime, transactionFingerprint,
 } from '../types/models.js';
 import { uid } from '../utils/id.js';
-import { setCurrency, setLocale } from '../utils/format.js';
+import { normalizePhone, phoneValid, setCurrency, setLocale } from '../utils/format.js';
 import { refreshNotifications } from './notifications.js';
 import { accountBalance, debtState, receivableState } from './finance.js';
 
@@ -33,6 +33,7 @@ export class AppError extends Error {
 const DEFAULT_PROFILE = {
   id: 'local',
   name: 'Pemilik Akun',
+  phone: '',
   email: '',
   currency: 'IDR',
   locale: 'id-ID',
@@ -194,14 +195,19 @@ async function loadUser(profile, users = null) {
  * Buat pengguna baru. Default: mulai dari DATA KOSONG (hanya kategori bawaan),
  * dengan opsi `mode: 'demo'` bila pengguna ingin melihat contoh.
  */
-export async function createUser({ name, mode = 'empty' } = {}) {
+export async function createUser({ name, phone = '', mode = 'empty' } = {}) {
   const clean = String(name || '').trim();
   if (clean.length < 2) throw new AppError('Nama minimal 2 karakter.', { code: 'name', fields: { name: 'Nama minimal 2 karakter.' } });
+  const cleanPhone = normalizePhone(phone);
+  if (phone && !phoneValid(phone)) {
+    throw new AppError('Nomor telepon belum benar. Contoh: 0812-3456-7890.', { code: 'phone', fields: { phone: 'Nomor telepon belum benar.' } });
+  }
 
   const profile = {
     ...DEFAULT_PROFILE,
     id: uid('usr'),
     name: clean,
+    phone: cleanPhone,
     created_at: new Date().toISOString(),
     onboarding_done: true,
     demo_loaded: mode === 'demo',
@@ -235,12 +241,17 @@ export async function createUser({ name, mode = 'empty' } = {}) {
  * Selesaikan perkenalan untuk profil yang sudah ada (mis. data lama sebelum
  * multi-pengguna). `keepData: false` → mulai dari kosong.
  */
-export async function completeOnboarding({ name, keepData = false, mode } = {}) {
+export async function completeOnboarding({ name, phone = '', keepData = false, mode } = {}) {
   const clean = String(name || '').trim();
   if (clean.length < 2) throw new AppError('Nama minimal 2 karakter.', { code: 'name', fields: { name: 'Nama minimal 2 karakter.' } });
+  const cleanPhone = normalizePhone(phone);
+  if (!phoneValid(cleanPhone)) {
+    throw new AppError('Nomor telepon belum benar. Contoh: 0812-3456-7890.', { code: 'phone', fields: { phone: 'Nomor telepon belum benar.' } });
+  }
 
-  await updateProfile({ name: clean, onboarding_done: true });
-  if (!keepData) {
+  await updateProfile({ name: clean, phone: cleanPhone, onboarding_done: true });
+  const pertahankan = keepData || state.legacyData; // data lama di perangkat ini tidak pernah dihapus diam-diam
+  if (!pertahankan) {
     if (mode === 'demo') {
       await loadDemoData();
     } else {

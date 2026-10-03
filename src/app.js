@@ -11,7 +11,7 @@ import { unreadCount, refreshNotifications } from './services/notifications.js';
 import { hasPin, isUnlocked, markUnlocked, verifyPin } from './services/security.js';
 import { registerServiceWorker, checkForUpdate, cacheVersion } from './sw-client.js';
 import { esc, on, qs, qsa } from './utils/dom.js';
-import { MASK, money, initialsOf } from './utils/format.js';
+import { MASK, money, initialsOf, formatPhone, phoneValid } from './utils/format.js';
 import { formatMonth, todayISO, monthKey } from './utils/date.js';
 import { icon, iconTile, logoMark } from './components/icons.js';
 import {
@@ -515,7 +515,8 @@ function openProfileMenu() {
   const state = store.state;
   openAdaptive({
     title: state.profile.name,
-    subtitle: state.profile.email || 'Data tersimpan lokal di perangkat ini',
+    subtitle: state.profile.phone ? `${formatPhone(state.profile.phone)} · lokal di perangkat ini`
+      : (state.profile.email || 'Data tersimpan lokal di perangkat ini'),
     iconName: 'users',
     size: 'sm',
     body: `<div class="stack-4">
@@ -539,6 +540,7 @@ function openProfileMenu() {
           ${(store.state.users || []).map((u) => `<button class="user-chip ${u.id === state.profile.id ? 'is-active' : ''}" data-switch-user="${esc(u.id)}" type="button">
             <span class="avatar avatar-sm">${esc(initialsOf(u.name))}</span>
             <span class="t-clip">${esc(u.name)}</span>
+            ${u.phone ? `<em class="user-chip-phone">${esc(formatPhone(u.phone))}</em>` : ''}
           </button>`).join('')}
           <button class="user-chip is-add" data-add-user type="button">${icon('plus', { size: 14 })} Tambah</button>
         </div>
@@ -854,8 +856,9 @@ async function boot() {
 /* ---------------------- Perkenalan pengguna ------------------------ */
 
 /**
- * Layar perkenalan sekaligus gerbang privasi: nama wajib diisi, lalu pengguna
- * memilih mulai dari data kosong (default) atau memuat data contoh.
+ * Layar perkenalan sekaligus gerbang privasi: cukup **nama** dan **nomor
+ * telepon**. Workspace baru selalu mulai dari data kosong; kalau perangkat ini
+ * sudah punya data dari versi sebelumnya, data itu otomatis dipertahankan.
  */
 function renderOnboarding(onDone) {
   const legacy = store.state.legacyData && store.state.users.length > 0;
@@ -868,7 +871,7 @@ function renderOnboarding(onDone) {
         <div class="boot-mark" style="display:grid;place-items:center">${logoMark(50)}</div>
         <div>
           <div class="t-h2">Selamat datang di AD-Finance</div>
-          <div class="t-xs t-dim mt-1">Kenalan dulu ya. Setiap pengguna di perangkat ini punya workspace-nya sendiri, jadi data Anda tidak bercampur dengan pengguna lain.</div>
+          <div class="t-xs t-dim mt-1">Isi nama dan nomor telepon dulu ya. Setiap pengguna di perangkat ini punya workspace-nya sendiri, jadi data Anda tidak bercampur dengan pengguna lain.</div>
         </div>
       </div>
 
@@ -879,60 +882,57 @@ function renderOnboarding(onDone) {
         <span class="field-error" data-onboard-error hidden>Nama minimal 2 karakter.</span>
       </div>
 
-      <div class="stack-2">
-        <div class="field-label">Mulai dari mana?</div>
-        <label class="opt-card">
-          <input type="radio" name="onboard-mode" value="empty" ${legacy ? '' : 'checked'} />
-          <span>
-            <b>Data kosong</b>
-            <em>Disarankan — catat keuangan Anda sendiri dari nol.</em>
-          </span>
-        </label>
-        ${legacy ? `<label class="opt-card">
-          <input type="radio" name="onboard-mode" value="keep" checked />
-          <span>
-            <b>Pertahankan data yang ada</b>
-            <em>${store.state.accounts.length} akun · ${store.state.transactions.length} transaksi tersimpan di perangkat ini.</em>
-          </span>
-        </label>` : ''}
-        <label class="opt-card">
-          <input type="radio" name="onboard-mode" value="demo" ${legacy ? '' : ''} />
-          <span>
-            <b>Isi dengan data contoh</b>
-            <em>5 bulan riwayat, 10 akun, hutang &amp; piutang — bisa dihapus kapan saja.</em>
-          </span>
-        </label>
+      <div class="field">
+        <label class="field-label" for="onboard-phone">Nomor Telepon</label>
+        <input class="input" id="onboard-phone" data-onboard-phone type="tel" inputmode="tel" autocomplete="tel"
+          placeholder="cth. 0812-3456-7890" maxlength="20" />
+        <span class="field-hint" data-onboard-phone-hint>Dipakai hanya sebagai identitas pengguna di perangkat ini.</span>
+        <span class="field-error" data-onboard-phone-error hidden>Nomor telepon belum benar. Contoh: 0812-3456-7890.</span>
       </div>
 
       <button class="btn btn-primary btn-lg btn-block" data-onboard-submit>${icon('arrow-right', { size: 18 })} Mulai gunakan</button>
-      <div class="t-2xs t-dim t-center">Data tersimpan lokal di perangkat ini dan hanya terlihat oleh pengguna ini.</div>
+      <div class="t-2xs t-dim t-center">${legacy
+        ? `Data yang sudah ada di perangkat ini (${store.state.accounts.length} akun · ${store.state.transactions.length} transaksi) akan dipertahankan.`
+        : 'Workspace baru mulai dari data kosong. Data tersimpan lokal di perangkat ini dan hanya terlihat oleh pengguna ini.'}</div>
     </div>`;
 
   document.body.appendChild(wrapper);
-  const input = qs('[data-onboard-name]', wrapper);
-  const errorEl = qs('[data-onboard-error]', wrapper);
-  input.focus();
+  const nameEl = qs('[data-onboard-name]', wrapper);
+  const phoneEl = qs('[data-onboard-phone]', wrapper);
+  const nameError = qs('[data-onboard-error]', wrapper);
+  const phoneError = qs('[data-onboard-phone-error]', wrapper);
+  const hint = qs('[data-onboard-phone-hint]', wrapper);
+  nameEl.focus();
+
+  const showError = (el, input, message) => {
+    el.hidden = false;
+    if (message) el.textContent = message;
+    input?.classList.add('is-invalid');
+  };
+  const clearError = (el, input) => {
+    el.hidden = true;
+    input?.classList.remove('is-invalid');
+  };
 
   let busy = false;
   const submit = async () => {
     if (busy) return;
-    const name = input.value.trim();
-    if (name.length < 2) {
-      errorEl.hidden = false;
-      input.classList.add('is-invalid');
-      input.focus();
-      return;
-    }
-    const mode = qs('input[name="onboard-mode"]:checked', wrapper)?.value || 'empty';
+    const name = nameEl.value.trim();
+    const phone = phoneEl.value.trim();
+    let salah = false;
+    if (name.length < 2) { showError(nameError, nameEl); salah = true; } else { clearError(nameError, nameEl); }
+    if (!phoneValid(phone)) { showError(phoneError, phoneEl); salah = true; } else { clearError(phoneError, phoneEl); }
+    if (salah) { (name.length < 2 ? nameEl : phoneEl).focus(); return; }
+
     busy = true;
     const button = qs('[data-onboard-submit]', wrapper);
     button.disabled = true;
     button.textContent = 'Menyiapkan workspace…';
     try {
       if (legacy) {
-        await store.completeOnboarding({ name, keepData: mode === 'keep', mode });
+        await store.completeOnboarding({ name, phone, keepData: true });
       } else {
-        await store.createUser({ name, mode: mode === 'demo' ? 'demo' : 'empty' });
+        await store.createUser({ name, phone, mode: 'empty' });
       }
       wrapper.remove();
       toast(`Halo, ${name}! Workspace Anda siap.`, { tone: 'pos', duration: 2600 });
@@ -941,14 +941,19 @@ function renderOnboarding(onDone) {
       busy = false;
       button.disabled = false;
       button.innerHTML = `${icon('arrow-right', { size: 18 })} Mulai gunakan`;
-      errorEl.hidden = false;
-      errorEl.textContent = error?.message || 'Gagal menyiapkan workspace.';
+      if (error?.code === 'phone') showError(phoneError, phoneEl, error.message);
+      else showError(nameError, nameEl, error?.message || 'Gagal menyiapkan workspace.');
     }
   };
 
   on(wrapper, 'click', '[data-onboard-submit]', submit);
-  on(wrapper, 'keydown', '[data-onboard-name]', (event) => { if (event.key === 'Enter') submit(); });
-  input.addEventListener('input', () => { errorEl.hidden = true; input.classList.remove('is-invalid'); });
+  const onEnter = (event) => { if (event.key === 'Enter') submit(); };
+  on(wrapper, 'keydown', '[data-onboard-name]', onEnter);
+  on(wrapper, 'keydown', '[data-onboard-phone]', onEnter);
+  nameEl.addEventListener('input', () => clearError(nameError, nameEl));
+  phoneEl.addEventListener('input', () => clearError(phoneError, phoneEl));
+  phoneEl.addEventListener('focus', () => { hint.hidden = true; });
+  phoneEl.addEventListener('blur', () => { if (!phoneEl.value.trim()) hint.hidden = false; });
 }
 
 /* --------------------------- Pengguna ------------------------------ */
@@ -977,31 +982,35 @@ function openUserForm({ onDone } = {}) {
         <input class="input" id="user-name" data-user-name type="text" maxlength="40" placeholder="cth. Pasangan / Anggota keluarga" />
         <span class="field-error" data-user-error hidden>Nama minimal 2 karakter.</span>
       </div>
-      <div class="stack-2">
-        <div class="field-label">Mulai dari mana?</div>
-        <label class="opt-card"><input type="radio" name="user-mode" value="empty" checked />
-          <span><b>Data kosong</b><em>Disarankan — mulai dari nol.</em></span></label>
-        <label class="opt-card"><input type="radio" name="user-mode" value="demo" />
-          <span><b>Data contoh</b><em>5 bulan riwayat untuk mencoba fitur.</em></span></label>
+      <div class="field">
+        <label class="field-label" for="user-phone">Nomor Telepon</label>
+        <input class="input" id="user-phone" data-user-phone type="tel" inputmode="tel" maxlength="20" placeholder="cth. 0812-3456-7890" />
+        <span class="field-error" data-user-phone-error hidden>Nomor telepon belum benar. Contoh: 0812-3456-7890.</span>
       </div>
       <div class="banner">${icon('info', { size: 18 })}<div class="grow t-xs">
-        Pengguna baru tidak bisa melihat data pengguna lain. Anda dapat berpindah kapan saja dari menu profil.</div></div>
+        Workspace baru selalu dimulai dari data kosong dan tidak bisa melihat data pengguna lain. Anda dapat berpindah kapan saja dari menu profil.</div></div>
     </div>`,
     footer: `<button class="btn btn-ghost" data-close>Batal</button>
       <button class="btn btn-primary ml-auto" data-save-user>${icon('plus', { size: 16 })} Buat pengguna</button>`,
     onMount(sheet, api) {
       const input = qs('[data-user-name]', sheet);
+      const phoneInput = qs('[data-user-phone]', sheet);
       const errorEl = qs('[data-user-error]', sheet);
+      const phoneError = qs('[data-user-phone-error]', sheet);
       input.focus();
-      input.addEventListener('input', () => { errorEl.hidden = true; });
+      input.addEventListener('input', () => { errorEl.hidden = true; input.classList.remove('is-invalid'); });
+      phoneInput.addEventListener('input', () => { phoneError.hidden = true; phoneInput.classList.remove('is-invalid'); });
       on(sheet, 'click', '[data-save-user]', async (event, el) => {
         const name = input.value.trim();
-        if (name.length < 2) { errorEl.hidden = false; return; }
+        const phone = phoneInput.value.trim();
+        let salah = false;
+        if (name.length < 2) { errorEl.hidden = false; input.classList.add('is-invalid'); salah = true; }
+        if (!phoneValid(phone)) { phoneError.hidden = false; phoneInput.classList.add('is-invalid'); salah = true; }
+        if (salah) { (name.length < 2 ? input : phoneInput).focus(); return; }
         el.disabled = true;
         el.textContent = 'Menyiapkan…';
         try {
-          const mode = qs('input[name="user-mode"]:checked', sheet)?.value || 'empty';
-          const profile = await store.createUser({ name, mode });
+          const profile = await store.createUser({ name, phone });
           api.close();
           toast(`Workspace ${profile.name} siap.`, { tone: 'pos' });
           renderRoute();
@@ -1009,15 +1018,15 @@ function openUserForm({ onDone } = {}) {
         } catch (error) {
           el.disabled = false;
           el.innerHTML = `${icon('plus', { size: 16 })} Buat pengguna`;
-          errorEl.hidden = false;
-          errorEl.textContent = error?.message || 'Gagal membuat pengguna.';
+          if (error?.code === 'phone') phoneError.hidden = false;
+          else errorEl.hidden = false;
+          (error?.code === 'phone' ? phoneError : errorEl).textContent = error?.message || 'Gagal membuat pengguna.';
         }
       });
     },
   });
 }
 
-/** Kelola pengguna: ganti nama atau hapus (data ikut terhapus). */
 function openUserManager() {
   const users = store.state.users || [];
   openAdaptive({

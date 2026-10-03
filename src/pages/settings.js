@@ -8,7 +8,7 @@ import { storageEstimate, requestPersistence, isFallbackMode, persistenceLabel }
 import { exportDataset, importDataset } from '../services/store.js';
 import { hasPin, setPin, removePin, lock, pinStrength } from '../services/security.js';
 import { esc, on, qs, qsa } from '../utils/dom.js';
-import { initialsOf, money } from '../utils/format.js';
+import { initialsOf, money, formatPhone, normalizePhone, phoneValid } from '../utils/format.js';
 import { icon, iconTile } from '../components/icons.js';
 import { APP_VERSION } from '../sw-client.js';
 import {
@@ -75,6 +75,7 @@ export const settingsPage = {
               </div>
               <div class="stack-4">
                 ${fieldHtml({ label: 'Nama', name: 'name', id: 'set-name', control: `<input class="input" id="set-name" data-name value="${esc(profile.name)}" maxlength="60" />` })}
+                ${fieldHtml({ label: 'Nomor Telepon', name: 'phone', id: 'set-phone', control: `<input class="input" type="tel" inputmode="tel" id="set-phone" data-phone value="${esc(formatPhone(profile.phone || ''))}" placeholder="cth. 0812-3456-7890" maxlength="20" />`, hint: 'Identitas pengguna di perangkat ini' })}
                 ${fieldHtml({ label: 'Email (opsional)', name: 'email', id: 'set-email', control: `<input class="input" type="email" id="set-email" data-email value="${esc(profile.email || '')}" placeholder="nama@email.com" />` })}
                 <div class="grid grid-2">
                   ${fieldHtml({ label: 'Mata Uang', name: 'currency', id: 'set-currency', control: `<select class="select" id="set-currency" data-currency>${CURRENCIES.map((c) => `<option value="${esc(c.value)}" ${c.value === profile.currency ? 'selected' : ''}>${esc(c.label)}</option>`).join('')}</select>` })}
@@ -176,7 +177,7 @@ export const settingsPage = {
                   <span class="avatar">${esc(initialsOf(u.name))}</span>
                   <div class="grow" style="min-width:0">
                     <div class="t-sm t-semibold t-clip">${esc(u.name)}</div>
-                    <div class="t-2xs t-dim">${u.id === state.profile.id ? 'Sedang aktif' : 'Tersimpan di perangkat ini'}</div>
+                    <div class="t-2xs t-dim">${u.phone ? `${esc(formatPhone(u.phone))} · ` : ''}${u.id === state.profile.id ? 'Sedang aktif' : 'Tersimpan di perangkat ini'}</div>
                   </div>
                   ${u.id === state.profile.id ? badgeHtml('Aktif', 'pos', { icon: 'circle-check' })
     : `<button class="btn btn-sm btn-outline" data-switch-user="${esc(u.id)}">Ganti</button>`}
@@ -301,9 +302,19 @@ export const settingsPage = {
           onKindChange: (next) => { catKind = next; renderPage(); },
           rerender: () => renderPage(),
         }),
-        on(root, 'click', '[data-save-profile]', async () => {
+        on(root, 'click', '[data-save-profile]', async (event, el) => {
+          const phoneInput = qs('[data-phone]', root);
+          const phone = phoneInput?.value ?? state.profile.phone ?? '';
+          if (!phoneValid(phone)) {
+            toast('Nomor telepon belum benar. Contoh: 0812-3456-7890.', { tone: 'warn', title: 'Cek lagi' });
+            phoneInput?.classList.add('is-invalid');
+            phoneInput?.focus();
+            return;
+          }
+          phoneInput?.classList.remove('is-invalid');
           await store.updateProfile({
             name: qs('[data-name]', root).value.trim() || 'Pemilik Akun',
+            phone: normalizePhone(phone),
             email: qs('[data-email]', root).value.trim(),
             currency: qs('[data-currency]', root).value,
             locale: qs('[data-locale]', root).value,

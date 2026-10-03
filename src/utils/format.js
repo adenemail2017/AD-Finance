@@ -150,6 +150,36 @@ export function plural(n, singular, p) {
 }
 
 /** Inisial nama untuk avatar: "Ade Nurrahman" → "AN". */
+/* --------------------------- Nomor telepon -------------------------- */
+/* Format Indonesia: pemisah apa pun dibuang, +62/62 → 08, lalu dikelompokkan
+   4 angka. Dipakai di layar perkenalan, kartu Profil, dan daftar pengguna. */
+
+const PHONE_MIN = 9;
+const PHONE_MAX = 15;
+
+/** Rapikan input pengguna menjadi digit `08xxxxxxxxxx` (tanpa spasi/strip). */
+export function normalizePhone(value = '') {
+  let raw = String(value).trim().replace(/[\s().\-]/g, '');
+  if (raw.startsWith('+')) raw = raw.slice(1);
+  if (raw.startsWith('62')) raw = `0${raw.slice(2)}`;
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return '';
+  return digits.startsWith('0') ? digits : `0${digits}`;
+}
+
+/** Benar bila nomor telepon masuk akal (9–15 digit, format Indonesia). */
+export function phoneValid(value = '') {
+  const digits = normalizePhone(value);
+  return digits.length >= PHONE_MIN && digits.length <= PHONE_MAX;
+}
+
+/** Tampilkan ramah: `0812-3456-7890`. */
+export function formatPhone(value = '') {
+  const digits = normalizePhone(value);
+  if (!digits) return '';
+  return digits.match(/\d{1,4}/g).join('-');
+}
+
 export function initialsOf(name = '') {
   return String(name).trim().split(/\s+/).slice(0, 2).map((part) => part[0] || '').join('').toUpperCase() || 'GU';
 }
