@@ -147,6 +147,12 @@ if (JSDOMClass) {
   try {
     const t0 = Date.now();
     await import(join(dir, 'src/app.js'));
+    // Produksi diuji sebagai perangkat baru → lewati gerbang perkenalan
+    // (nama + nomor telepon) dengan pengguna uji berisi data contoh.
+    await waitFor(() => window.__pfos, 'api siap');
+    if (window.__pfos.needsUser()) {
+      await window.__pfos.createUser({ name: 'Audit Produksi', phone: '081200000000', mode: 'demo' });
+    }
     await waitFor(() => window.document.querySelector('#view .card'), 'dashboard');
     ok(`aplikasi boot dari berkas produksi (${Date.now() - t0} ms) — dashboard render`);
     for (const [route, selector, label] of [
