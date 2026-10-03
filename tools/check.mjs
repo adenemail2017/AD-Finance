@@ -350,8 +350,8 @@ const invariants = [
   {
     label: 'pengguna baru mulai dari data kosong (kategori bawaan saja)',
     pass: /export async function createUser\(\{ name, phone = '', mode = 'empty' \} = \{\}\)/.test(await readFile(join(ROOT, 'src/services/store.js'), 'utf8'))
-      && /await idb.putMany\('categories', buildDefaultCategories\(profile.id\)\);/.test(await readFile(join(ROOT, 'src/services/store.js'), 'utf8'))
-      && /if \(mode === 'demo'\)/.test(await readFile(join(ROOT, 'src/services/store.js'), 'utf8')),
+      && /dataset \? dataset\.categories : buildDefaultCategories\(profile\.id\)/.test(await readFile(join(ROOT, 'src/services/store.js'), 'utf8'))
+      && /if \(dataset\) \{/.test(await readFile(join(ROOT, 'src/services/store.js'), 'utf8')),
     hint: 'default harus kosong; data contoh hanya untuk pengujian/bila diminta eksplisit',
   },
   {
@@ -387,6 +387,33 @@ const invariants = [
     label: 'layar perkenalan selalu dibersihkan sebelum shell berdiri',
     pass: (await readFile(join(ROOT, 'src/app.js'), 'utf8')).match(/document\.querySelector\('\.onboarding'\)\?\.remove\(\)/g)?.length >= 2,
     hint: 'kalau gerbang tertinggal, dashboard tertutup overlay tanpa jalan keluar',
+  },
+  {
+    label: 'beranda punya diagram donat carousel (3 slide: arus kas, pengeluaran, pemasukan)',
+    pass: /export function donutCarousel/.test(await readFile(join(ROOT, 'src/components/donut-carousel.js'), 'utf8'))
+      && /data-donut-slide/.test(await readFile(join(ROOT, 'src/components/donut-carousel.js'), 'utf8'))
+      && /\$\{donutCard\(state\)\}/.test(await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8'))
+      && /donutIndex/.test(await readFile(join(ROOT, 'src/pages/dashboard.js'), 'utf8')),
+    hint: 'permintaan pengguna: diagram pie di beranda seperti contoh (carousel + pilih bulan)',
+  },
+  {
+    label: 'di desktop tiga donat tampil berdampingan, di ponsel jadi carousel',
+    pass: /\.cd-track \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/.test(cssComponents)
+      && /\.cd-nav \{ display: flex; \}/.test(cssApp)
+      && /\.cd-slide\[aria-hidden="true"\] \{ pointer-events: none; \}/.test(cssApp),
+    hint: 'satu donat per layar di ponsel; tiga berdampingan di desktop tanpa navigasi',
+  },
+  {
+    label: 'segmen donat tunggal digambar sebagai lingkaran penuh',
+    pass: /const solo = segments\.length === 1;/.test(await readFile(join(ROOT, 'src/components/donut-carousel.js'), 'utf8'))
+      && /const dash = solo \? circumference :/.test(await readFile(join(ROOT, 'src/components/donut-carousel.js'), 'utf8')),
+    hint: 'tanpa ini cincin 100% menganga karena jeda antar segmen',
+  },
+  {
+    label: 'data contoh menyimpan kategori yang benar-benar dirujuk transaksinya',
+    pass: /const dataset = mode === 'demo' \? buildDemoDataset\(profile\.id\) : null;/.test(await readFile(join(ROOT, 'src/services/store.js'), 'utf8'))
+      && /dataset \? dataset\.categories : buildDefaultCategories\(profile\.id\)/.test(await readFile(join(ROOT, 'src/services/store.js'), 'utf8')),
+    hint: 'bug nyata: kategori disimpan dari buildDefaultCategories terpisah sehingga breakdown jadi "Tanpa kategori"',
   },
   {
     label: 'beranda: kartu Saldo Akun tampil di atas kartu Kekayaan Bersih',

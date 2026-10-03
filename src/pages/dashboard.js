@@ -12,7 +12,7 @@ import { ACCOUNT_TYPES, TRANSACTION_TYPES } from '../types/models.js';
 import { esc, on, qs, qsa } from '../utils/dom.js';
 import { MASK, money, percent } from '../utils/format.js';
 import { maskMoneyInDom } from '../utils/privacy.js';
-import { formatMonth, monthKey, rangeForPreset, todayISO, toISO, MONTHS_SHORT_ID } from '../utils/date.js';
+import { formatMonth, monthKey, monthOptions, rangeForPreset, todayISO, toISO, MONTHS_SHORT_ID } from '../utils/date.js';
 import { icon, iconTile } from '../components/icons.js';
 import { groupedBarChart, lineAreaChart, sparkline } from '../components/charts.js';
 import { attachChartTooltips } from '../components/charts.js';
@@ -22,6 +22,7 @@ import {
   railFoot, summaryCard, deltaHtml, heroCard, legendItem,
 } from '../components/cards.js';
 import { badgeHtml, moneyHtml, onSegment, progressHtml, toast } from '../components/ui.js';
+import { donutCarousel, donutSlide } from '../components/donut-carousel.js';
 import {
   ledgerHtml, openTransactionDetail, openTransactionForm, openDebtPayment, openReceivablePayment,
 } from '../components/ledger.js';
@@ -39,6 +40,91 @@ const QUICK_ACTIONS = [
 ];
 
 const HOME_RECENT_LIMIT = 5;
+
+/* Diagram donat: bulan & slide yang sedang dilihat (bertahan selama sesi). */
+let donutMonth = null;
+let donutIndex = 0;
+const DONUT_PALETTE = ['#2563eb', '#0ea5e9', '#6d47d9', '#c2760a', '#0d9488', '#d92d3f', '#8b5cf6'];
+const DONUT_TOP = 5;
+
+/** Kumpulkan transaksi satu bulan lalu pecah jadi tiga slide donat. */
+function donutSlides(state, month) {
+  const hide = !!state.settings.hide_balance;
+  const fmt = (value) => (hide ? MASK : money(value, { compact: true }));
+  const rows = state.transactions.filter((t) => String(t.date || '').slice(0, 7) === month);
+  const sumType = (type) => rows.filter((t) => t.transaction_type === type)
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const income = sumType(TRANSACTION_TYPES.INCOME);
+  const expense = sumType(TRANSACTION_TYPES.EXPENSE);
+
+  const catMap = new Map(state.categories.map((c) => [c.id, c]));
+  const byCategory = (type) => {
+    const totals = new Map();
+    rows.filter((t) => t.transaction_type === type).forEach((t) => {
+      const key = t.category_id || '__none';
+      totals.set(key, (totals.get(key) || 0) + Number(t.amount || 0));
+    });
+    const list = [...totals.entries()].map(([id, value]) => {
+      const cat = catMap.get(id);
+      return { label: cat?.name || 'Tanpa kategori', value, color: cat?.color || null, icon: cat?.icon || 'tag' };
+    }).sort((a, b) => b.value - a.value);
+    const top = list.slice(0, DONUT_TOP);
+    const restTotal = list.slice(DONUT_TOP).reduce((acc, c) => acc + c.value, 0);
+    if (restTotal > 0) top.push({ label: 'Lainnya', value: restTotal, color: null, icon: 'dots' });
+    return top.map((c, i) => ({ ...c, color: c.color || DONUT_PALETTE[i % DONUT_PALETTE.length] }));
+  };
+
+  const net = income - expense;
+  return [
+    {
+      key: 'cashflow',
+      title: 'Total Cashflow',
+      value: fmt(net),
+      link: 'Lihat Detail Cashflow',
+      hint: 'Belum ada arus kas bulan ini',
+      sub: 'pemasukan vs pengeluaran',
+      segments: [
+        { label: 'Pemasukan', value: income, color: 'var(--pos)', icon: 'trending-up' },
+        { label: 'Pengeluaran', value: expense, color: 'var(--neg)', icon: 'trending-down' },
+      ].filter((s) => s.value > 0),
+    },
+    {
+      key: 'pengeluaran',
+      title: 'Total Pengeluaran',
+      value: fmt(expense),
+      link: 'Lihat Detail Pengeluaran',
+      hint: 'Belum ada pengeluaran bulan ini',
+      sub: 'per kategori',
+      segments: byCategory(TRANSACTION_TYPES.EXPENSE),
+    },
+    {
+      key: 'pemasukan',
+      title: 'Total Pemasukan',
+      value: fmt(income),
+      link: 'Lihat Detail Pemasukan',
+      hint: 'Belum ada pemasukan bulan ini',
+      sub: 'per sumber',
+      segments: byCategory(TRANSACTION_TYPES.INCOME),
+    },
+  ];
+}
+
+/** Kartu donat siap-tempel untuk beranda. */
+function donutCard(state) {
+  const options = monthOptions(12);
+  if (!donutMonth) donutMonth = monthKey();
+  if (!options.some((o) => o.value === donutMonth)) options.unshift({ value: donutMonth, label: formatMonth(donutMonth) });
+
+  const slides = donutSlides(state, donutMonth);
+  const html = slides.map((s) => donutSlide({ ...s, masked: !!state.settings.hide_balance }));
+  return donutCarousel({
+    slides: html,
+    monthOptions: options,
+    monthValue: donutMonth,
+    sub: `Arus kas, pengeluaran, dan pemasukan ${formatMonth(donutMonth)}`,
+  });
+}
+
 
 const RANGE_OPTIONS = [
   { value: '7d', label: '7H' },
@@ -324,6 +410,10 @@ export const dashboardPage = {
         </div>
 
         <div class="bento">
+          ${donutCard(state)}
+        </div>
+
+        <div class="bento">
           <section class="card card-flush col-12 tint-brand">
             <div class="card-head" style="padding:var(--s-5) var(--s-5) var(--s-3)">
               <div><h3>Transaksi Terbaru</h3><div class="card-sub">${summary.monthTotals.count} transaksi bulan ini · ${recent.length} terakhir</div></div>
@@ -418,6 +508,52 @@ export const dashboardPage = {
       on(root, 'click', '[data-receive]', (event, el) => openReceivablePayment({ receivableId: el.dataset.receive, onDone: rerender })),
       on(root, 'click', '[data-go]', (event, el) => ctx.navigate(el.dataset.go)),
       on(root, 'click', '[data-account-card]', (event, el) => ctx.navigate('accounts', { id: el.dataset.accountCard })),
+
+      /* Diagram donat: pilih bulan, titik navigasi, panah, dan geser jari. */
+      (() => {
+        const track = qs('[data-donut-track]', root);
+        const slides = qsa('[data-donut-slide]', root);
+        if (!track || !slides.length) return () => {};
+
+        const apply = (index) => {
+          donutIndex = ((index % slides.length) + slides.length) % slides.length;
+          track.style.transform = donutIndex === 0 ? 'translateX(0%)' : `translateX(-${donutIndex * 100}%)`;
+          qsa('[data-donut-dot]', root).forEach((dot, i) => dot.classList.toggle('is-active', i === donutIndex));
+          slides.forEach((slide, i) => slide.setAttribute('aria-hidden', String(i !== donutIndex)));
+        };
+        apply(donutIndex);
+
+        const stops = [
+          on(root, 'click', '[data-donut-prev]', () => apply(donutIndex - 1)),
+          on(root, 'click', '[data-donut-next]', () => apply(donutIndex + 1)),
+          on(root, 'click', '[data-donut-dot]', (event, el) => apply(Number(el.dataset.donutDot))),
+          on(root, 'change', '[data-donut-month]', (event, el) => {
+            donutMonth = el.value;
+            donutIndex = 0;
+            rerender();
+          }),
+          on(root, 'click', '[data-donut-link]', () => ctx.navigate('analytics')),
+        ];
+
+        const viewport = qs('[data-donut-viewport]', root);
+        let startX = null;
+        const onStart = (event) => { startX = event.touches[0].clientX; };
+        const onEnd = (event) => {
+          if (startX == null) return;
+          const dx = event.changedTouches[0].clientX - startX;
+          if (Math.abs(dx) > 40) apply(donutIndex + (dx < 0 ? 1 : -1));
+          startX = null;
+        };
+        if (viewport) {
+          viewport.addEventListener('touchstart', onStart, { passive: true });
+          viewport.addEventListener('touchend', onEnd, { passive: true });
+        }
+        return () => {
+          stops.forEach((stop) => stop());
+          viewport?.removeEventListener('touchstart', onStart);
+          viewport?.removeEventListener('touchend', onEnd);
+        };
+      })(),
     ];
 
     /* rail horizontal: tombol panah (rail akun) + status tepi untuk semua rail */

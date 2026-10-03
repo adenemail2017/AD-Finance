@@ -529,6 +529,19 @@
 }
 
 /* ========================================================================== */
+/* Iterasi 9.4 — diagram donat di beranda: carousel di ponsel                 */
+/* ========================================================================== */
+
+@media (max-width: 860px) {
+  .cd-card .card-head { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .cd-month { width: 100%; justify-content: space-between; }
+  .cd-month-select { flex: 1; }
+  .cd-nav { display: flex; }
+  /* Slide non-aktif tidak ikut terbaca pembaca layar / di-tap. */
+  .cd-slide[aria-hidden="true"] { pointer-events: none; }
+}
+
+/* ========================================================================== */
 /* Iterasi 9.3 — tabel Rekap Bulanan (9 kolom) dirapikan                      */
 /* ========================================================================== */
 

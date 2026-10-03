@@ -215,11 +215,14 @@ export async function createUser({ name, phone = '', mode = 'empty' } = {}) {
 
   await idb.saveProfile(profile);
   idb.setUserScope(profile.id);
-  await idb.putMany('categories', buildDefaultCategories(profile.id));
+
+  // Data contoh dibangun sekali; kategori yang disimpan harus yang dirujuk
+  // transaksinya (kalau tidak, semua breakdown kategori jadi "Tanpa kategori").
+  const dataset = mode === 'demo' ? buildDemoDataset(profile.id) : null;
+  await idb.putMany('categories', dataset ? dataset.categories : buildDefaultCategories(profile.id));
   await idb.put('settings', { key: 'theme', value: profile.theme });
 
-  if (mode === 'demo') {
-    const dataset = buildDemoDataset(profile.id);
+  if (dataset) {
     await Promise.all([
       idb.putMany('accounts', dataset.accounts),
       idb.putMany('transactions', dataset.transactions),

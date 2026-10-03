@@ -10,7 +10,7 @@
  *  • Writes/API: never cached; the app itself queues mutations in an outbox.
  */
 
-const VERSION = 'adfinance-v2.5.4';
+const VERSION = 'adfinance-v2.5.5';
 const RUNTIME = 'adfinance-runtime-v2.0.0';
 
 const APP_SHELL = [
@@ -41,6 +41,7 @@ const APP_SHELL = [
   'src/components/charts.js',
   'src/components/cards.js',
   'src/components/category-manager.js',
+  'src/components/donut-carousel.js',
   'src/components/ledger.js',
   'src/pages/dashboard.js',
   'src/pages/transactions.js',

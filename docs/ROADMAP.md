@@ -15,7 +15,7 @@ Dikerjakan bertahap sesuai 12 fase yang diminta; setiap fase menjaga kompatibili
 | 9 | Budget & notifikasi | ✅ | budget per kategori, ambang 80%/100%, 6 jenis notifikasi turunan |
 | 10 | PWA & offline | ✅ | manifest, service worker 41 entri precache, outbox + auto-sync, install prompt, splash |
 | 11 | Auth & keamanan | ✅ | PIN lock (salted SHA-256 ×120), isolasi data per user di API + RLS, masking nomor rekening, **multi-pengguna: onboarding nama + nomor telepon, workspace kosong per pengguna** |
-| 12 | Testing · bugfix · performa | ✅ | 39 unit/integration + 230 smoke + 12 sandbox + 42 pemeriksa integritas + audit browser (layout & multiuser) |
+| 12 | Testing · bugfix · performa | ✅ | 39 unit/integration + 240 smoke + 12 sandbox + 46 pemeriksa integritas + audit browser (layout & multiuser) |
 
 ## Bug nyata yang ditemukan test dan sudah diperbaiki
 
@@ -311,6 +311,31 @@ Menjelang rilis 2.5.4 workspace dirapikan tanpa mengubah aplikasi sama sekali:
 
 Hasil: **97 MB → 15 MB**. Yang disimpan: kode aplikasi, repo git, komposit bukti 2.5.x, logo, dan empat skrip QA yang masih berguna.
 Catatan: `preview/` dan `qa/` berada di luar repo — `.vercelignore` memang tidak pernah mengunggahnya, jadi produksi tidak terpengaruh.
+
+## Iterasi 9.4 — diagram donat di Beranda (v2.5.5)
+
+**Permintaan:** "Saya mau di buatkan diagram Pie di halaman Home seperti gambar ini" (3 contoh: Total Cashflow, Total Pengeluaran, Total Pemasukan).
+
+| Aspek | Keputusan |
+|---|---|
+| Bentuk | **Donat SVG** (bukan pie pejal) mengikuti contoh: cincin tebal, **lingkaran ikon di tengah busur tiap segmen**, label + nominal + tombol **mata** di tengah |
+| Isi slide | 1) Total Cashflow (pemasukan vs pengeluaran), 2) Total Pengeluaran **per kategori**, 3) Total Pemasukan **per sumber** — warna & ikon mengikuti kategori pengguna |
+| Ponsel | **carousel** satu slide per layar: titik navigasi, tombol panah bulat, dan **geser jari** |
+| Desktop | ketiga donat tampil **berdampingan** (grid 3 kolom, pemisah putus-putus), navigasi disembunyikan |
+| Bonus | **pemilih bulan** (12 bulan terakhir) di kepala kartu — angka donat ikut bulan itu |
+| Privasi | tombol mata di tengah donat terhubung ke setelan `hide_balance` yang sama dengan kartu saldo |
+| Tautan | "Lihat Detail …" mengarah ke halaman **Analytics** |
+
+**Bug nyata yang ketemu saat mengerjakan (dan diperbaiki).** Donat pengeluaran semula menampilkan "Tanpa kategori"
+untuk semua segmen. Ternyata `createUser({ mode: 'demo' })` menyimpan `buildDefaultCategories()` (id kategori acak baru)
+terpisah dari `buildDemoDataset()` yang transaksinya menunjuk id kategori lain — jadi **seluruh breakdown kategori di
+data contoh tidak pernah tersambung** (donut Laporan, Budget, Analytics, dan "Top Pengeluaran" ikut terdampak).
+Kini dataset dibangun sekali dan kategori yang disimpan persis yang dirujuk transaksinya.
+Dua bug kecil lain: cincin 100 % menganga karena jeda antar segmen (kini satu segmen digambar penuh), dan
+`translateX(-0%)` pada slide pertama.
+
+**Verifikasi:** 46 pemeriksa integritas (4 baru), **240/240** smoke (10 pemeriksaan diagram donat baru),
+39 unit, 12 sandbox, `audit:layout` hijau 5 viewport. **Bukti:** `preview/donat-beranda-2.5.5.png`.
 
 ## Prinsip untuk perubahan berikutnya
 

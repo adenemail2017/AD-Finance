@@ -871,6 +871,43 @@ check('recap ends with a sectioned trend block', /Tren/.test($('#view').textCont
 window.__pfos.navigate('transactions');
 await waitFor(() => $('#view .tool-card'), { label: 'transactions again' });
 
+section('Diagram donat beranda');
+{
+  window.__pfos.navigate('dashboard');
+  window.__pfos.rerender();
+  await sleep(220);
+  const card = q('#view [data-donut-card]');
+  check('kartu diagram donat dirender di beranda', Boolean(card));
+  const slides = qsa('#view [data-donut-slide]');
+  check('ada tiga slide: arus kas, pengeluaran, pemasukan', slides.length === 3,
+    slides.map((s) => s.dataset.donutSlide).join(', '));
+  check('setiap slide punya nilai tengah dan tautan detail',
+    slides.every((s) => (s.querySelector('.cd-value')?.textContent || '').trim().length > 0 && Boolean(s.querySelector('.cd-link'))));
+  check('slide pertama penuh: pemasukan + pengeluaran bulan ini',
+    qsa('#view [data-donut-slide="cashflow"] .cd-seg').length === 2,
+    `${qsa('#view [data-donut-slide="cashflow"] .cd-seg').length} segmen`);
+  check('slide pengeluaran pecah per kategori dengan warna kategori',
+    qsa('#view [data-donut-slide="pengeluaran"] .cd-seg').length >= 2
+    && qsa('#view [data-donut-slide="pengeluaran"] .cd-node').length >= 2,
+    `${qsa('#view [data-donut-slide="pengeluaran"] .cd-node').length} ikon`);
+  check('carousel: panah berikutnya menggeser jalur slide',
+    (() => {
+      click(q('#view [data-donut-next]'));
+      return q('#view [data-donut-track]').style.transform === 'translateX(-100%)';
+    })());
+  check('titik navigasi aktif mengikuti slide', qsa('#view .cd-dot.is-active').length === 1
+    && qsa('#view .cd-dot')[1].classList.contains('is-active'));
+  click(q('#view [data-donut-prev]'));
+  check('panah sebelumnya kembali ke slide pertama', q('#view [data-donut-track]').style.transform === 'translateX(0%)');
+  check('pemilih bulan tersedia di kartu diagram',
+    qsa('#view [data-donut-month] option').length >= 6, `${qsa('#view [data-donut-month] option').length} bulan`);
+  click(q('#view [data-donut-slide="cashflow"] .cd-eye'));
+  await waitFor(() => (q('#view [data-donut-slide="cashflow"] .cd-value')?.textContent || '').includes('••'), { label: 'mode privasi donat' });
+  check('tombol mata menyensor nominal donat', (q('#view [data-donut-slide="cashflow"] .cd-value').textContent || '').includes('••'));
+  click(q('#view [data-donut-slide="cashflow"] .cd-eye'));
+  await sleep(400);
+}
+
 section('Urutan beranda');
 {
   window.__pfos.navigate('dashboard');

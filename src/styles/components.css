@@ -1105,6 +1105,78 @@
 .account-card.is-mini .am-meta { font-size: var(--fs-2xs); color: var(--text-3); }
 .account-rail > .account-card.is-mini { flex: 0 0 auto; }
 
+/* --------------------- Diagram donat (kartu carousel beranda) -------------- */
+.cd-card .card-head { align-items: flex-start; }
+.cd-month {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r-md);
+  background: var(--surface-2); color: var(--text-2);
+}
+.cd-month-select {
+  appearance: none; border: 0; background: transparent; color: var(--text);
+  font: inherit; font-size: var(--fs-sm); font-weight: 620; padding: 0; cursor: pointer;
+}
+.cd-month-select:focus-visible { outline: 2px solid var(--brand-500); outline-offset: 2px; border-radius: 6px; }
+
+.cd-viewport { overflow: hidden; margin-top: var(--s-2); }
+.cd-track { display: flex; transition: transform 340ms var(--ease); }
+.cd-slide {
+  flex: 0 0 100%; display: flex; flex-direction: column; align-items: center; gap: var(--s-2);
+  padding: var(--s-3) var(--s-4) var(--s-2);
+}
+.cd-holder { position: relative; flex: none; }
+.cd-holder svg { display: block; }
+.cd-seg { animation: cdIn 620ms var(--ease) both; }
+@keyframes cdIn { from { opacity: 0; stroke-width: 8; } to { opacity: 1; } }
+
+/* lingkaran ikon di tengah busur tiap segmen */
+.cd-node {
+  position: absolute; transform: translate(-50%, -50%);
+  display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--surface); border: 1px solid var(--line); color: var(--node, var(--brand-500));
+  box-shadow: var(--sh-sm); pointer-events: none;
+}
+.cd-center {
+  position: absolute; inset: 0; display: grid; place-content: center; justify-items: center;
+  gap: 2px; text-align: center; padding: 0 46px;
+}
+.cd-title { font-size: var(--fs-xs); font-weight: 640; color: var(--text-2); }
+.cd-value { font-size: var(--fs-h3); font-weight: 750; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.cd-sub { font-size: var(--fs-2xs); color: var(--text-3); }
+.cd-eye {
+  display: grid; place-items: center; width: 34px; height: 30px; margin-top: 6px;
+  border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); color: var(--text-2);
+  cursor: pointer; transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.cd-eye:hover { color: var(--text); border-color: var(--line-strong); }
+.cd-link {
+  font-size: var(--fs-sm); font-weight: 620; color: var(--brand-600, var(--brand-500));
+  text-decoration: none; padding: 6px 10px; border-radius: 999px;
+}
+.cd-link:hover { background: color-mix(in srgb, var(--brand-500) 8%, transparent); }
+
+.cd-nav { display: none; align-items: center; justify-content: center; gap: var(--s-5); margin-top: var(--s-2); }
+.cd-nav-btn {
+  display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--brand-600, var(--brand-500));
+  cursor: pointer; box-shadow: var(--sh-sm); transition: transform var(--t) var(--ease);
+}
+.cd-nav-btn:hover { transform: scale(1.06); }
+.cd-dots { display: flex; align-items: center; gap: 9px; }
+.cd-dot {
+  width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%;
+  background: var(--line-strong); cursor: pointer; transition: background var(--t) var(--ease);
+}
+.cd-dot.is-active { background: var(--brand-500); }
+
+/* Desktop: tiga donat berdampingan, tanpa carousel. */
+@media (min-width: 861px) {
+  .cd-track { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); transition: none; }
+  .cd-slide { flex: none; padding: var(--s-4) var(--s-3) var(--s-3); }
+  .cd-slide + .cd-slide { border-left: 1px dashed var(--line); }
+  .cd-nav { display: none; }
+}
+
 /* --------------------- Saldo Akun di baris pertama beranda ---------------- */
 /* Kartu ini berdampingan dengan kartu saldo ATM yang tinggi, jadi isinya
    ditata: rail ditengahkan secara vertikal, kaki total menempel di bawah. */
