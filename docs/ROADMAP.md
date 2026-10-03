@@ -364,6 +364,28 @@ bunga flat di dunia nyata: begitu akad ditandatangani, seluruh kewajiban sudah m
 41 unit (2 tes baru: rumus bunga + sisa/progress berbasis kewajiban), 12 sandbox, `audit:layout` hijau 5 viewport.
 **Bukti:** `preview/hutang-bunga-2.5.6.png` + `qa/cek-bunga-hutang.mjs`.
 
+## Iterasi 9.6 — tata letak ulang form Transaksi Baru (v2.5.7)
+
+**Permintaan:** "Perbaiki tampilan ui Transaksi Baru, menurut saya Ui nya kurang rapih dan kurang bagus".
+
+Lima cacat nyata yang ditemukan saat menilai ulang layar ini:
+
+| # | Masalah lama | Perbaikan |
+|---|---|---|
+| 1 | **Bug bocor:** label akun tercetak `Akun <span data-account-label-suffix></span>` karena `fieldHtml()` meng-`esc()` label | label ditulis langsung di markup; teks berubah mengikuti jenis (`sumber dana` / `penerima dana` / `akun pembayaran` / `akun penerimaan`) |
+| 2 | **Overflow horizontal:** sheet lebih lebar dari layar ponsel (388 px) — track grid implisit melar mengikuti max-content tag di dalam `<details>` | `.txn-form { grid-template-columns: minmax(0, 1fr) }` + `min-width: 0` untuk semua blok |
+| 3 | **Jenis transaksi** 9 chip panjang membungkus jadi 5 baris, menyisakan setengah kolom | ubin **3 kolom** (ikon di atas label, aktif = gradien biru); 5 kolom di desktop |
+| 4 | **Kategori terpotong** — aturan mobile `max-height: 232px; overflow-y: auto` memotong daftar di tengah kartu | daftar **pill** dengan ikon berwarna, membungkus penuh, tanpa potongan |
+| 5 | **Kartu nominal & footer bertumpuk** — kolom `×2`/`Clear` sebaris 3 tombol, footer 3 tombol saling menghimpit | satu **kartu nominal** (angka 26–34 px, Rp sebagai prefix, chip cepat membungkus, ×2/kosong kecil di kanan) dan footer dua baris: aksi utama penuh, lalu Batal + Simpan & tambah |
+
+Tambahan: kolom jarang dipakai (keterangan, tag, catatan, lampiran) dipindah ke **Detail tambahan** (`<details>`)
+yang otomatis terbuka bila sedang mengedit transaksi yang sudah punya isi — jadi layar awal hanya berisi
+lima keputusan inti: jenis, nominal, tanggal/waktu, kategori, akun.
+
+**Verifikasi:** 54 pemeriksa integritas (4 baru), **265/265** smoke (9 pemeriksaan baru, termasuk penjaga bug
+markup bocor dan penjaga overflow), 41 unit, 12 sandbox, `audit:layout` hijau 5 viewport.
+**Bukti:** `preview/txn-form-2.5.7.png` (sebelum/sesudah) + `qa/shot-txn-form.mjs`.
+
 ## Prinsip untuk perubahan berikutnya
 
 1. Jangan rusak invarian akuntansi (`docs/ACCOUNTING.md`).

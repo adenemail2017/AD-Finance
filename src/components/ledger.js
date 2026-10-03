@@ -357,32 +357,37 @@ export function openTransactionForm(cfg = {}) {
 
   const typeOptions = Object.values(TRANSACTION_TYPES).map((type) => {
     const meta = TRANSACTION_TYPE_META[type];
-    return `<button type="button" class="chip" data-type="${type}" aria-pressed="false">
-      ${icon(meta.icon, { size: 15 })} ${esc(meta.label)}</button>`;
+    return `<button type="button" class="txn-type" data-type="${type}" aria-pressed="false">
+      ${icon(meta.icon, { size: 18 })}<span>${esc(meta.label)}</span></button>`;
   }).join('');
 
   const body = `
-    <div class="stack-5">
+    <div class="txn-form">
       <div class="stack-2">
         <span class="field-label">Jenis Transaksi</span>
-        <div class="chip-row chip-grid" data-types>${typeOptions}</div>
+        <div class="txn-types" data-types>${typeOptions}</div>
         <span class="field-hint" data-type-hint></span>
       </div>
 
-      <div class="stack-2">
-        <span class="field-label">Nominal</span>
-        <div class="input-group">
-          <span class="input-prefix">Rp</span>
-          <input class="input amount-input" data-amount inputmode="numeric" autocomplete="off"
-            placeholder="0" style="padding-left:44px" data-autofocus aria-label="Nominal" />
+      <section class="txn-amount-card">
+        <div class="txn-amount-head">
+          <span class="field-label">Nominal</span>
+          <span class="txn-amount-kind" data-amount-kind></span>
         </div>
-        <div class="chip-row chip-grid chip-grid-3" data-quick-amounts>
-          ${[10_000, 50_000, 100_000, 500_000, 1_000_000].map((v) => `<button type="button" class="chip" data-add-amount="${v}">+${esc(money(v, { compact: true }))}</button>`).join('')}
-          <button type="button" class="chip" data-add-amount="double">×2</button>
-          <button type="button" class="chip" data-add-amount="clear">${icon('x', { size: 14 })} Clear</button>
+        <div class="txn-amount-row">
+          <span class="txn-currency">Rp</span>
+          <input class="txn-amount-input" data-amount inputmode="numeric" autocomplete="off"
+            placeholder="0" data-autofocus aria-label="Nominal" />
+          <div class="txn-amount-tools">
+            <button type="button" class="txn-tool" data-add-amount="double" title="Kalikan dua" aria-label="Kalikan dua">×2</button>
+            <button type="button" class="txn-tool" data-add-amount="clear" title="Kosongkan" aria-label="Kosongkan">${icon('x', { size: 15 })}</button>
+          </div>
+        </div>
+        <div class="chip-row txn-quick" data-quick-amounts>
+          ${[10_000, 50_000, 100_000, 500_000, 1_000_000].map((v) => `<button type="button" class="chip chip-sm" data-add-amount="${v}">+${esc(money(v, { compact: true }))}</button>`).join('')}
         </div>
         <span class="field-error" data-error="amount" hidden></span>
-      </div>
+      </section>
 
       <div class="grid grid-2" data-row-datetime>
         ${fieldHtml({
@@ -400,8 +405,8 @@ export function openTransactionForm(cfg = {}) {
           <span class="field-label">Kategori</span>
           <button type="button" class="btn btn-sm btn-ghost" data-new-category>${icon('plus', { size: 15 })} Kategori baru</button>
         </div>
-        <input class="input" data-category-search placeholder="Cari kategori…" aria-label="Cari kategori" />
-        <div data-category-grid class="option-grid"></div>
+        <input class="input input-sm" data-category-search placeholder="Cari kategori…" aria-label="Cari kategori" />
+        <div data-category-grid class="cat-grid"></div>
         <span class="field-error" data-error="category_id" hidden></span>
         <div data-subcategory-wrap hidden>
           <span class="field-label" style="display:block;margin-bottom:6px">Sub Kategori</span>
@@ -410,19 +415,17 @@ export function openTransactionForm(cfg = {}) {
       </div>
 
       <div class="grid grid-2">
-        ${fieldHtml({
-    label: 'Akun <span data-account-label-suffix></span>', name: 'account_id', id: 'txn-account',
-    control: `<select class="select" id="txn-account" data-account>${activeAccounts.map((a) => `<option value="${esc(a.id)}">${esc(a.name)} — ${esc(money(balances.get(a.id) || 0))}</option>`).join('')}</select>`,
-  })}
-        <div data-block="destination" hidden>
-          ${fieldHtml({
-    label: 'Akun Tujuan', name: 'destination_account_id', id: 'txn-destination',
-    control: '<select class="select" id="txn-destination" data-destination></select>',
-  })}
+        <div class="field" data-field="account_id">
+          <label class="field-label" for="txn-account">Akun <span class="t-dim" data-account-label-suffix>sumber dana</span></label>
+          <select class="select" id="txn-account" data-account>${activeAccounts.map((a) => `<option value="${esc(a.id)}">${esc(a.name)} — ${esc(money(balances.get(a.id) || 0))}</option>`).join('')}</select>
+          <span class="field-error" data-error="account_id" hidden></span>
+        </div>
+        <div class="field" data-block="destination" hidden data-field="destination_account_id">
+          <label class="field-label" for="txn-destination">Akun Tujuan</label>
+          <select class="select" id="txn-destination" data-destination></select>
+          <span class="field-error" data-error="destination_account_id" hidden></span>
         </div>
       </div>
-      <span class="field-error" data-error="account_id" hidden></span>
-      <span class="field-error" data-error="destination_account_id" hidden></span>
 
       <div class="stack-2" data-block="linked" hidden>
         <div class="grid grid-2">
@@ -445,34 +448,41 @@ export function openTransactionForm(cfg = {}) {
         <div class="banner" data-open-record-info hidden></div>
       </div>
 
-      <div class="grid grid-2">
-        ${fieldHtml({
+      <details class="txn-more" data-txn-more>
+        <summary>
+          <span class="txn-more-title">Detail tambahan</span>
+          <span class="txn-more-sub" data-more-sub>keterangan · tag · catatan · lampiran</span>
+          ${icon('chevron-down', { size: 16, class: 'txn-more-chev' })}
+        </summary>
+        <div class="txn-more-body">
+          <div class="grid grid-2">
+            ${fieldHtml({
     label: 'Keterangan', name: 'description', id: 'txn-desc',
     control: '<input class="input" id="txn-desc" data-description placeholder="Contoh: Makan siang" maxlength="120" />',
   })}
-        ${fieldHtml({
+            ${fieldHtml({
     label: 'Tag', name: 'tags', id: 'txn-tags', hint: 'Pisahkan dengan koma',
     control: '<input class="input" id="txn-tags" data-tags placeholder="rutin, keluarga" />',
   })}
-      </div>
-
-      ${fieldHtml({
+          </div>
+          ${fieldHtml({
     label: 'Catatan', name: 'notes', id: 'txn-notes',
     control: '<textarea class="textarea" id="txn-notes" data-notes placeholder="Detail tambahan (opsional)"></textarea>',
   })}
-
-      <div class="stack-2">
-        <span class="field-label">Lampiran</span>
-        <div class="row gap-3">
-          <label class="btn btn-outline btn-sm" style="cursor:pointer">
-            ${icon('image', { size: 16 })} Pilih gambar
-            <input type="file" accept="image/*" data-file hidden />
-          </label>
-          <button type="button" class="btn btn-sm btn-ghost" data-scan>${icon('scan', { size: 16 })} Kamera</button>
-          <button type="button" class="btn btn-sm btn-ghost" data-remove-attachment hidden>${icon('trash', { size: 16 })} Hapus</button>
+          <div class="stack-2">
+            <span class="field-label">Lampiran</span>
+            <div class="row gap-3">
+              <label class="btn btn-outline btn-sm" style="cursor:pointer">
+                ${icon('image', { size: 16 })} Pilih gambar
+                <input type="file" accept="image/*" data-file hidden />
+              </label>
+              <button type="button" class="btn btn-sm btn-ghost" data-scan>${icon('scan', { size: 16 })} Kamera</button>
+              <button type="button" class="btn btn-sm btn-ghost" data-remove-attachment hidden>${icon('trash', { size: 16 })} Hapus</button>
+            </div>
+            <div data-attachment-preview hidden></div>
+          </div>
         </div>
-        <div data-attachment-preview hidden></div>
-      </div>
+      </details>
 
       <div class="banner is-warn" data-duplicate-banner hidden>
         ${icon('alert', { size: 18 })}
@@ -482,9 +492,13 @@ export function openTransactionForm(cfg = {}) {
     </div>`;
 
   const footer = `
-    <button class="btn btn-ghost" data-cancel>Batal</button>
-    <button class="btn btn-outline" data-save-more>${icon('plus', { size: 17 })} Simpan & tambah lagi</button>
-    <button class="btn btn-primary ml-auto" data-save>${icon('check', { size: 17 })} ${editing ? 'Simpan Perubahan' : 'Simpan Transaksi'}</button>`;
+    <div class="txn-footer">
+      <button class="btn btn-primary btn-block" data-save>${icon('check', { size: 17 })} ${editing ? 'Simpan Perubahan' : 'Simpan Transaksi'}</button>
+      <div class="row">
+        <button class="btn btn-ghost btn-sm" data-cancel>Batal</button>
+        <button class="btn btn-outline btn-sm" data-save-more>${icon('plus', { size: 16 })} Simpan &amp; tambah</button>
+      </div>
+    </div>`;
 
   return openAdaptive({
     title: editing ? 'Edit Transaksi' : 'Transaksi Baru',
@@ -513,6 +527,17 @@ export function openTransactionForm(cfg = {}) {
       const attachmentPreview = qs('[data-attachment-preview]', sheet);
       const fileInput = qs('[data-file]', sheet);
       const removeAttachmentBtn = qs('[data-remove-attachment]', sheet);
+
+      const footerEl = qs('.sheet-footer', sheet.closest('.overlay') || document);
+      if (footerEl) footerEl.classList.add('is-stacked');
+      const moreWrap = qs('[data-txn-more]', sheet);
+      const moreSub = qs('[data-more-sub]', sheet);
+      const isiDetail = () => {
+        const n = [draft.description, draft.notes, (draft.tags || []).join(''), draft.attachment ? 'x' : ''].filter(Boolean).length;
+        moreSub.textContent = n ? `${n} kolom terisi` : 'keterangan · tag · catatan · lampiran';
+      };
+      if (draft.description || draft.notes || (draft.tags || []).length || draft.attachment) moreWrap.open = true;
+      isiDetail();
 
       accountSelect.value = draft.account_id;
       qs('[data-date]', sheet).value = draft.date;
@@ -563,6 +588,23 @@ export function openTransactionForm(cfg = {}) {
           if (isActive) { try { b.scrollIntoView?.({ inline: 'center', block: 'nearest' }); } catch { /* non-fatal */ } }
         });
         typeHint.textContent = meta?.hint || '';
+        const amountKind = qs('[data-amount-kind]', sheet);
+        if (amountKind) amountKind.textContent = meta?.label || '';
+        const accSuffix = qs('[data-account-label-suffix]', sheet);
+        if (accSuffix) {
+          const ACC_LABEL = {
+            income: 'penerima dana',
+            expense: 'sumber dana',
+            transfer: 'sumber dana',
+            investment: 'sumber dana',
+            emergency_fund: 'sumber dana',
+            debt: 'penerima dana',
+            receivable: 'sumber dana',
+            debt_payment: 'akun pembayaran',
+            receivable_payment: 'akun penerimaan',
+          };
+          accSuffix.textContent = ACC_LABEL[type] || 'akun';
+        }
         destBlock.hidden = !isTransferLike(type);
         linkedBlock.hidden = !needsLinkedEntity(type);
         openRecordBlock.hidden = !needsOpenRecord(type);
@@ -623,9 +665,9 @@ export function openTransactionForm(cfg = {}) {
         const recentIds = recents.get().categories;
         const recent = filtered.filter((c) => recentIds.includes(c.id)).slice(0, 4);
         const rest = filtered.filter((c) => !recent.includes(c));
-        const tile = (c) => `<button type="button" class="option-tile ${draft.category_id === c.id ? 'is-active' : ''}" data-category="${esc(c.id)}">
-          ${iconTile(c.icon, { color: c.color, size: 32, radius: 10, iconSize: 17 })}
-          <span class="option-title t-clip" style="display:block;width:100%">${esc(c.name)}</span>
+        const tile = (c) => `<button type="button" class="cat-pill ${draft.category_id === c.id ? 'is-active' : ''}" data-category="${esc(c.id)}">
+          ${iconTile(c.icon, { color: c.color, size: 22, radius: 7, iconSize: 12 })}
+          <span class="t-clip">${esc(c.name)}</span>
         </button>`;
         categoryGrid.innerHTML = `
           ${recent.length ? `<div class="col-12 t-label" style="grid-column:1/-1">Sering dipakai</div>${recent.map(tile).join('')}` : ''}
@@ -833,7 +875,9 @@ export function openTransactionForm(cfg = {}) {
       on(sheet, 'click', '[data-save-more]', () => submit(true));
       on(sheet, 'click', '[data-force-save]', () => submit(false));
       on(sheet, 'click', '[data-cancel]', () => api.close());
-      descriptionInput.addEventListener('input', () => { draft.descriptionTouched = true; });
+      descriptionInput.addEventListener('input', () => { draft.descriptionTouched = true; isiDetail(); });
+      qs('[data-notes]', sheet).addEventListener('input', isiDetail);
+      qs('[data-tags]', sheet).addEventListener('input', isiDetail);
       accountSelect.addEventListener('change', () => {
         draft.account_id = accountSelect.value;
         if (!destBlock.hidden) buildDestinationOptions();

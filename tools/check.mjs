@@ -538,6 +538,35 @@ const invariants = [
       && /info\.terms\.installment/.test(ledgerJs),
     hint: 'pengguna membayar cicilan tetap tiap bulan (1.153.334) — jangan minta hitung manual',
   },
+  {
+    label: 'Form Transaksi Baru: ubin jenis 3 kolom + kartu nominal besar',
+    pass: /\.txn-types \{ display: grid; grid-template-columns: repeat\(3/.test(cssComponents)
+      && /\.txn-amount-input \{/.test(cssComponents)
+      && /class="txn-type"/.test(ledgerJs)
+      && /txn-amount-card/.test(ledgerJs),
+    hint: 'chip panjang yang membungkus 5 baris digantikan ubin 3 kolom; nominal jadi fokus utama form',
+  },
+  {
+    label: 'Form Transaksi Baru: detail opsional dilipat (.txn-more)',
+    pass: /<details class="txn-more"/.test(ledgerJs)
+      && /data-txn-more/.test(ledgerJs)
+      && /\.txn-more\[open\] \.txn-more-chev/.test(cssComponents),
+    hint: 'keterangan/tag/catatan/lampiran dipakai sesekali — jangan memaksa pengguna menggulir lebih jauh',
+  },
+  {
+    label: 'Form Transaksi Baru: kategori berbentuk pill, tanpa tinggi terpotong',
+    pass: /\.cat-pill \{/.test(cssComponents)
+      && /class="cat-pill/.test(ledgerJs)
+      && !/max-height: 232px/.test(await readFile(join(ROOT, 'src/styles/app.css'), 'utf8'))
+      && /\.cat-grid \{ display: flex; flex-wrap: wrap/.test(cssComponents),
+    hint: 'daftar kategori lama terpotong di tengah sehingga kategori terakhir tidak terlihat',
+  },
+  {
+    label: 'Form Transaksi Baru: tidak melebar melebihi layar (grid track minmax)',
+    pass: /\.txn-form \{\s*display: grid; grid-template-columns: minmax\(0, 1fr\)/.test(cssComponents)
+      && /\.txn-form > \*, \.txn-form \.grid > \* \{ min-width: 0; \}/.test(cssComponents),
+    hint: 'track grid implisit melar mengikuti max-content tag sehingga sheet melampaui viewport ponsel',
+  },
 ];
 for (const inv of invariants) {
   if (inv.pass) ok(inv.label);

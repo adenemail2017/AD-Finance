@@ -671,6 +671,107 @@
 .debt-calc-note { font-size: 10px; line-height: 1.5; color: var(--text-3); }
 .metric-note { margin-top: 4px; font-size: var(--fs-2xs); color: var(--text-3); font-variant-numeric: tabular-nums; }
 
+/* ------------- Form Transaksi Baru 2.5.7 (rapi & ringkas) ------------------ */
+.txn-form {
+  display: grid; grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-5); max-width: 660px; margin: 0 auto;
+}
+/* semua blok di dalam form tidak boleh melebar mengikuti max-content */
+.txn-form > *, .txn-form .grid > * { min-width: 0; }
+.txn-amount-card, .txn-more-body, .txn-footer { grid-template-columns: minmax(0, 1fr); }
+
+/* Jenis transaksi: ubin 3 kolom (ikon di atas label), ringkas & rapi */
+.txn-types { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.txn-type {
+  display: grid; justify-items: center; gap: 6px; text-align: center;
+  padding: 10px 6px; min-height: 62px;
+  border-radius: var(--r-md); border: 1px solid var(--line); background: var(--surface);
+  font-size: 10.5px; font-weight: 640; line-height: 1.15; color: var(--text-2);
+  cursor: pointer; transition: all var(--t-fast) var(--ease);
+}
+.txn-type svg { width: 18px; height: 18px; color: var(--brand-500); }
+.txn-type:hover { border-color: var(--line-strong); transform: translateY(-1px); box-shadow: var(--sh-sm); }
+.txn-type.is-active {
+  background: linear-gradient(150deg, var(--brand-500), var(--brand-700));
+  border-color: transparent; color: #fff;
+  box-shadow: 0 12px 24px -14px var(--brand-600);
+}
+.txn-type.is-active svg { color: #fff; }
+@media (min-width: 720px) { .txn-types { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+
+/* Nominal: satu kartu fokus dengan angka besar */
+.txn-amount-card {
+  display: grid; gap: 10px; padding: var(--s-4);
+  border-radius: var(--r-lg);
+  background: linear-gradient(150deg, color-mix(in srgb, var(--brand-50) 72%, var(--surface)), var(--surface));
+  border: 1px solid color-mix(in srgb, var(--brand-300) 46%, var(--line));
+}
+.txn-amount-head { display: flex; align-items: center; gap: 8px; }
+.txn-amount-kind {
+  margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--brand-600) 80%, var(--text-2));
+}
+.txn-amount-row { display: flex; align-items: center; gap: 10px; }
+.txn-currency { font-size: var(--fs-sm); font-weight: 720; color: var(--text-3); }
+.txn-amount-input {
+  flex: 1; min-width: 0; border: 0; background: transparent; padding: 2px 0;
+  font-size: clamp(26px, 8.4vw, 34px); font-weight: 780; letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums; color: var(--text);
+}
+.txn-amount-input:focus { outline: none; }
+.txn-amount-input::placeholder { color: color-mix(in srgb, var(--text-3) 60%, transparent); }
+.txn-amount-tools { display: flex; gap: 6px; }
+.txn-tool {
+  width: 36px; height: 36px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface);
+  color: var(--text-2); font-size: var(--fs-xs); font-weight: 700; cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+.txn-tool:hover { border-color: var(--brand-300); color: var(--brand-600); transform: translateY(-1px); }
+.txn-quick { flex-wrap: wrap; overflow: visible; padding-bottom: 0; }
+.chip-sm { height: 28px; padding: 0 11px; font-size: var(--fs-2xs); }
+
+/* Kategori: pill + ikon, membungkus tanpa terpotong */
+.cat-grid { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cat-grid .t-label { flex-basis: 100%; margin-top: 2px; }
+.cat-pill {
+  display: inline-flex; align-items: center; gap: 7px; max-width: 100%;
+  padding: 5px 12px 5px 6px; border-radius: var(--r-pill);
+  border: 1px solid var(--line); background: var(--surface);
+  font-size: var(--fs-xs); font-weight: 620; color: var(--text-2);
+  cursor: pointer; transition: all var(--t-fast) var(--ease);
+}
+.cat-pill:hover { border-color: var(--line-strong); transform: translateY(-1px); box-shadow: var(--sh-sm); }
+.cat-pill.is-active { border-color: var(--brand-500); background: var(--brand-50); color: var(--brand-700); box-shadow: var(--ring); }
+
+/* Detail tambahan: opsional, bisa dibuka */
+.txn-more { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface-2); overflow: hidden; }
+.txn-more > summary {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px var(--s-4); cursor: pointer; list-style: none;
+}
+.txn-more > summary::-webkit-details-marker { display: none; }
+.txn-more-title { font-size: var(--fs-xs); font-weight: 680; }
+.txn-more-sub { margin-left: auto; font-size: var(--fs-2xs); color: var(--text-3); }
+.txn-more-chev { color: var(--text-3); transition: transform var(--t-fast) var(--ease); flex: none; }
+.txn-more[open] .txn-more-chev { transform: rotate(180deg); }
+.txn-more-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); padding: var(--s-4); border-top: 1px dashed var(--line-strong); }
+/* di layar sempit: judul + panah di baris pertama, keterangan di baris kedua */
+@media (max-width: 560px) {
+  .txn-more > summary { flex-wrap: wrap; }
+  .txn-more-title { flex: 1 1 auto; }
+  .txn-more-chev { order: 2; }
+  .txn-more-sub { order: 3; flex-basis: 100%; margin-left: 0; }
+}
+
+/* Footer dua baris: aksi utama penuh, aksi sekunder berdampingan */
+.sheet-footer.is-stacked { display: block; }
+.txn-footer { display: grid; gap: 10px; }
+.txn-footer .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.txn-footer .btn { justify-content: center; }
+.input-sm { height: 40px; font-size: var(--fs-sm); }
+
 /* ------------------------------- Statement -------------------------------- */
 .statement-head {
   display: grid; gap: var(--s-4); padding: var(--s-5);

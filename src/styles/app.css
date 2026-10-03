@@ -359,11 +359,8 @@
   .chip-grid-3 .chip { font-size: var(--fs-2xs); }
   /* Tanggal & waktu tetap berdampingan (dua kolom) walau grid-2 lain menumpuk. */
   .sheet .grid.grid-2[data-row-datetime] { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-3); }
-  /* Daftar kategori: dua kolom, tinggi dibatasi, bisa digulir di dalam sheet. */
-  .sheet [data-category-grid] {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    max-height: 232px; overflow-y: auto; padding-right: 2px;
-  }
+  /* Daftar kategori ringkas (pill) — tidak lagi dipotong tinggi tetap. */
+  .sheet [data-category-grid] { max-height: none; overflow: visible; padding-right: 0; }
   .amount-input { height: 58px; font-size: 24px; }
   .sheet .banner { font-size: var(--fs-2xs); }
 }

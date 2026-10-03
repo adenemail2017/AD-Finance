@@ -417,6 +417,27 @@ setValue($('.sheet [data-amount]'), '125.000');
 click($$('.sheet [data-category]')[0]);
 setValue($('.sheet [data-description]'), 'Uji coba smoke test');
 check('amount field formats while typing', /125\.000/.test($('.sheet [data-amount]').value), $('.sheet [data-amount]').value);
+// —— penataan ulang form Transaksi Baru (v2.5.7) ——
+check('jenis transaksi memakai ubin 3 kolom (.txn-type)', Boolean($('.sheet .txn-types'))
+  && $$('.sheet [data-type]').every((b) => b.classList.contains('txn-type')));
+check('nominal tampil di kartu fokus dengan angka besar',
+  Boolean($('.sheet .txn-amount-card')) && Boolean($('.sheet [data-amount].txn-amount-input')));
+check('label akun menyesuaikan jenis transaksi',
+  /sumber dana/.test($('.sheet [data-account-label-suffix]')?.textContent || ''),
+  $('.sheet [data-account-label-suffix]')?.textContent.trim());
+check('kategori berbentuk pill (bukan kartu tinggi)',
+  $$('.sheet .cat-pill').length > 3, `${$$('.sheet .cat-pill').length} pill`);
+check('detail tambahan dilipat secara default', Boolean($('.sheet .txn-more')) && !$('.sheet .txn-more').open);
+check('keterangan/tag/catatan tetap ada di dalam lipatan',
+  Boolean($('.sheet [data-description]')) && Boolean($('.sheet [data-tags]')) && Boolean($('.sheet [data-notes]')));
+check('tidak ada markup bocor di form (label Akun)',
+  !/<\/?span/.test($('.sheet .sheet-body').textContent),
+  ($('.sheet .sheet-body').textContent.match(/<\/?span[^>]*>/g) || []).slice(0, 2).join(' '));
+const txnBody = $('.sheet .sheet-body');
+check('form transaksi tidak melebar melebihi layar',
+  txnBody.scrollWidth <= txnBody.clientWidth + 1, `${txnBody.scrollWidth} vs ${txnBody.clientWidth}`);
+check('aksi utama penuh + aksi sekunder berdampingan (.txn-footer)',
+  Boolean($('.sheet .txn-footer')) && Boolean($('.sheet [data-save]')) && Boolean($('.sheet [data-save-more]')));
 click($('.sheet [data-save]'));
 await waitFor(() => !doc.querySelector('.overlay'), { label: 'form closes' });
 check('transaction persisted (+1)', state.transactions.length === countBefore + 1, `${countBefore} → ${state.transactions.length}`);
