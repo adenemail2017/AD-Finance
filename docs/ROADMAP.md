@@ -140,7 +140,7 @@ Pelajaran: seluruh test DOM (jsdom) buta terhadap tata letak — jsdom tidak pun
 | Notifikasi melayang | banner demo (z 300) menutupi isi sheet & menu (z 200) | `body.has-overlay` / `body.fab-open` menyembunyikan toast stack |
 | Tentang Aplikasi | menampilkan `state.version` = **v1** (itu versi skema penyimpanan, bukan versi rilis) | **v2.2.0** dari satu sumber `APP_VERSION` (sw-client.js) + baris **Developer: Ade Nurrahman** |
 
-**Bukti:** `preview/perbaikan-iterasi6.png` (sebelum/sesudah 5 permukaan), `preview/shots/{n1..n6,o1,o2}-*.png`.
+**Bukti:** `preview/perbaikan-iterasi6.png` (sebelum/sesudah 5 permukaan).
 **Verifikasi:** invariant `tools/check.mjs` bertambah 6 (total **19**), smoke DOM bertambah 19 (total **175**), `audit:layout` 25/25 bersih, footer sheet diukur di browser (semua tombol utuh, overflow 0 px).
 
 ## Iterasi 7 — merapatkan Beranda (rail akun, metrik gabungan, hutang-piutang)
@@ -191,8 +191,7 @@ Perbaikan nyata yang ikut ketemu saat audit visual: di ponsel **judul "Arus Kas"
 karena flexbox menaruh kontrol rentang (7H…1T) di luar tepi kartu (x=369 px pada kartu selebar 366 px).
 Kepala kartu grafik sekarang grid satu kolom — `.chart-card` khusus beranda.
 
-**Bukti:** `preview/home-redesign.png` + 32 tangkapan layar `preview/shots/desain-*.png` (8 halaman × 2 tema ×
-2 perangkat) · **Verifikasi:** 30 invariant, **196/196** smoke, `audit:layout` hijau, nol error konsol.
+**Bukti:** `preview/home-redesign.png` (komposit 8 halaman × 2 tema ÷ sebelum/sesudah) · **Verifikasi:** 30 invariant, **196/196** smoke, `audit:layout` hijau, nol error konsol.
 
 ## Perbaikan lanjutan — ledger di dalam popup (Iterasi 6.1)
 
@@ -270,7 +269,7 @@ untuk keperluan pengujian, bukan lagi pilihan di layar pengguna.
 Urutan tangkapan di ponsel kini: Saldo Akun (#1) · Aksi Cepat · Ringkasan Bulan Ini · Arus Kas · Kesehatan Budget ·
 Transaksi Terbaru · **Kekayaan Bersih (#7)** · Hutang & Piutang · Financial Insights.
 
-**Bukti:** `preview/shots/urutan-desktop.png`, `preview/shots/urutan-mobile.png` · **Verifikasi:** 39 pemeriksa integritas,
+**Bukti:** `preview/urutan-saldo-akun.png` (desktop + ponsel + produksi) · **Verifikasi:** 39 pemeriksa integritas,
 **228/228** smoke (bagian "Urutan beranda" baru), `audit:layout` hijau di 5 viewport.
 
 ## Iterasi 9.3 — tabel Rekap Bulanan dirapikan (v2.5.4)
@@ -298,6 +297,20 @@ Aturan lama `.table-stack.is-dense` **dihapus dari design system** dan diganti k
 **Bukti terukur (Chromium, skrip `qa/shot-recap.mjs`):** sebelum — tumpang-tindih pada 5 baris & luber 94 px;
 sesudah — `jumlahTumpang: 0`, `gulirSamping: 0`, `selKeluarTepi: 0` di ponsel 390 px maupun desktop 1440 px.
 **Verifikasi:** 42 pemeriksa integritas, **230/230** smoke (2 pemeriksaan tabel rekap baru), `audit:layout` hijau 5 viewport.
+
+## Pembersihan workspace (v2.5.4)
+
+Menjelang rilis 2.5.4 workspace dirapikan tanpa mengubah aplikasi sama sekali:
+
+| Dihapus | Alasan |
+|---|---|
+| 151 tangkapan layar historis `preview/shots/` (78 MB) | bukti ronde 4–9; versi yang dokumen ini rujuk sudah digantikan komposit 2.5.x |
+| Komposit lama (`produksi-2.4.0`, `perbaikan-mobile*`, `*-redesign`, dll.) | menampilkan UI yang sudah tidak berlaku |
+| Berkas bantuan `CARA-UPDATE-GITHUB.md`, `salin-ci-ke-github.md`, `upload-ke-github/`, `ad-finance-2.4.0-update.zip` | digantikan alur push token + CI + deploy otomatis |
+| 26 skrip `qa/dbg-*`, `qa/diag*`, `qa/measure-*`, `qa/panel-*`, `qa/verify-prod`, dll. | debug sekali-pakai; yang tersisa hanya alat yang masih dipakai (`setup-browser.sh`, `shot-*.mjs`) |
+
+Hasil: **97 MB → 15 MB**. Yang disimpan: kode aplikasi, repo git, komposit bukti 2.5.x, logo, dan empat skrip QA yang masih berguna.
+Catatan: `preview/` dan `qa/` berada di luar repo — `.vercelignore` memang tidak pernah mengunggahnya, jadi produksi tidak terpengaruh.
 
 ## Prinsip untuk perubahan berikutnya
 
